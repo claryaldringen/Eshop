@@ -1,0 +1,76 @@
+.icon {
+	float: left;
+	margin: 1px 4px;
+	height: 16px;
+	width: 16px;
+	background-repeat: no-repeat;
+	display: block;
+	overflow: hidden;
+}
+
+.icon.icon-edit{
+    background-image: url('../images/icons/page_edit.png');
+}
+.icon.icon-del{
+    background-image: url('../images/icons/page_delete.png');
+}
+.icon.icon-add{
+    background-image: url('../images/icons/page_add.png');
+}
+.icon.icon-print{
+    background-image: url('../images/icons/printer.png');
+}
+.icon.icon-table{
+    background-image: url('../images/icons/table.png');
+}
+.icon.icon-error{
+    background-image: url('../images/icons/cancel.png');
+}
+.icon.icon-invert{
+    background-image: url('../images/icons/invert.png');
+}
+.icon.icon-warning{
+    background-image: url('../images/icons/error.png');
+}
+.icon.icon-info{
+    background-image: url('../images/icons/information.png');
+}
+.icon.icon-calendar-month{
+    background-image: url('../images/icons/calendar_view_month.png');
+}
+.icon.icon-help{
+    background-image: url('../images/icons/help.png');
+}
+.icon.icon-menu{
+    background-image: url('../images/icons/application_view_list.png');
+}
+.icon.icon-door-in{
+    background-image: url('../images/icons/door_in.png');
+}
+.icon.icon-page-white{
+    background-image: url('../images/icons/page_white.png');
+}
+.icon.icon-server{
+    background-image: url('../images/icons/server.png');
+}
+.icon.icon-drive{
+    background-image: url('../images/icons/drive.png');
+}
+.icon.icon-image-add{
+    background-image: url('../images/icons/image_add.png');
+}
+.icon.icon-database{
+    background-image: url('../images/icons/database.png');
+}
+.icon.icon-page-white-stack{
+    background-image: url('../images/icons/page_white_stack.png');
+}
+.icon.icon-emoticon-smile{
+    background-image: url('../images/icons/emoticon_smile.png');
+}
+
+.icon.icon-inline{
+    float: none;
+    display: inline-block;
+    vertical-align: middle;
+}

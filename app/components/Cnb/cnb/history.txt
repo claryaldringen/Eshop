@@ -1,0 +1,83 @@
+HISTORY
+v1.8.3
+-byla odstraněna metoda getUsingRate() byla totožná s metodou Rate() v sablone se $useRate nezměnila
+-možnost zakázat stahování Cnb::CNB_LIST2 pomoci Cnb::$loadBoth = false;
+-Cnb::getAllCode() možnost sežadit podle kódu měny
+-Cnb::getRating() vložíte-li false načte všechny stažené měny
+-kód měny se měnil podle velikosti písma nyní je UPPER, pokud chcete aby se nadále měníl použijte $cnb->getSymbol();
+
+v1.8.2
+-vylepšena metoda getElement2Cache()
+-vylepšena třída CnbNette její registrace
+-instance template už není potřeba vkládat při registraci
+-přidána statická metoda getVersion()
+
+v1.8.1
+-upravena metoda na tvorbu cache souboru
+
+v1.8
+-fix: nastavení dph zlobilo, špatně se ukldalo do session
+-fix: CnbHistory
+-CnbNette do template přibyli dvě nové proměnné, $useRate, $globalVat
+-nová metoda Cnb::getUsingRating()
+-cache soubor vytvářen jako statický
+-$globalVat je zakazané pokud byl $vat CnbNette false
+
+v1.7.2
+-výpočet pro RATE byl zrychlen
+-odstranena metoda divisionRate()
+
+v1.7.1
+-kontrola na nacteni cache
+
+v1.7
+-třída Cnb je určená pro samostatné použití bez Nette, pro Nette je určená NCnb a pro šablony v Nette CnbNette
+-volitelné parametry pro cache soubor, konstanty v třídě Cnb
+
+v1.6.1
+-kontrola zda je povoleny allow_url_fopen nebo načtený curl
+
+v1.6
+-kosmeticke upravy kodu
+-spatne se nacitala turecka mena
+-zmenseni cache souboru na disku o vice jak 50%
+
+v1.5.3
+-zrychleni metod change() a format(), nejdulezitejsi pro vykreslovani a vypocet
+
+v1.5.2
+-statická třída určená jen pro Nette CnbNette
+
+v1.5.1
+-english documentation
+
+v1.5
+-prace s DPH
+
+v1.4
+-nove ukladani historie do db
+
+v1.31
+-drobne upravy pro spolupraci s CnbHistoryDb
+
+v1.3
+-nova metoda __call
+-odstranena metoda defineMoney() nahrazena getRating()
+-moznost stazeni starsiho kurzu, pouzijte tridu CnbHistory
+-nove se uklada id kurzu vydaneho za danny rok a datum
+-historie ma jedno omezeni, tj nestahuje Cnb::CNB_LIST2 techto men se nevede historie
+
+v1.2
+-nova metoda defineMoney() spolupracuje s vlastnosti $defineMoney kde si nastavite vychozi pro web
+-metoda format ma novy parametr $change kdy lze vybrat zda se ma nebo nema mena prepocitat
+-fix: opravena moznost korekce men
+-vlastnosti static prevedeny na dynamicke aby sli dedenim menit
+-funkcnost i bez Nette avsak prijdete o ukladani do session, trida Cnb2 upne dole
+
+v1.1
+stahovani pomoci CURL
+libovone nastaveni formatovani pro kazdou menu zvlast pres metodu format()
+tzn mate czk -> 15 365 Kč, usd -> $1,955.35, gbp -> L1 568.45
+
+v1.0
+ -nove stahuje uplne vsechny meny, nactou se jen potrebne

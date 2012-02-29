@@ -1,0 +1,15 @@
+  <div class="sidebar">
+ 		<div class="sidebar_top"><h2>Nejnovější</h2></div>
+ 		<div class="sidebar_middle">
+ 		 {foreach $news as $item}
+ 			<div class="polozka">
+ 				<a href="{plink detail 'path'=>$item->path,'produkt'=>$item->link}">
+ 				<img src="{$baseUri}/images/uploaded/mini{$item->image}.jpg">
+ 				<h3>{$item->jmeno|truncate:20}</h3>
+ 				</a>
+ 				Cena:&nbsp;{if isset($item->scena) && $item->scena}od&nbsp;{$item->scena|currency:czk:$mena}{else}{$item->cena|currency:czk:$mena}{/if}
+ 			</div>
+ 		 {/foreach}
+ 		</div>
+ 		<div class="sidebar_bottom"></div>
+	</div>

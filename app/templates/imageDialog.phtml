@@ -1,0 +1,26 @@
+{snippet imageDialog}
+	{if isset($showImageDialog)}
+		<div class="window">
+		<div class="title">Nahrát obrázek<a href="#" class="close" onClick="$(this).parent().parent().hide();return false;">X</a></div>
+		<div style="padding-left:10px;padding-top:20px;">
+			{widget uploadNForm}
+		</div>
+		</div>
+		<script>
+		$('.window').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.window').keypress(function(e){ if(e.keyCode == 13){ $('.authNForm').submit(); } })
+			var winH = $(window).height();
+			var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window').css('top',  winH/2-$('.window').height()/2);
+			$('.window').css('left', winW/2-$('.window').width()/2);
+			$('.window').show();
+			
+		</script> 	
+	{/if}
+{/snippet}

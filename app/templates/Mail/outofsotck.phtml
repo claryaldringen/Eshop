@@ -1,0 +1,13 @@
+Následující skladové položky docházejí:
+<br>
+<table style="width:480px;">
+	<tr>
+		<th>Položka</th><th>Zbývá</th>
+	</tr>
+	{foreach $items as $item}
+	<tr>
+		<td>{$item->product} {$item->variant}</td>
+		<td>{$item->sklad} {$item->kus}</td>
+	</tr>
+	{/foreach}
+</table>

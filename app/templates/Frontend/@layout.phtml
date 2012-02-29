@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="Description" content="" >
+    <meta name="Keywords" content="" >
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta name="Distribution" content="Global" >
+    <meta name="Author" content="Softweb.cz - www.softweb.cz" >
+    <meta name="Robots" content="all, index, follow" >
+		<meta name="google-site-verification" content="lWMcmVi37gM16Yw8n7IOCZhlgCgcu8oAfkTpm0Ha-AU">
+    <title>Mercatores - {$title}</title>
+		<link rel="stylesheet" media="screen,projection,tv" href="{$basePath}/css/style.css" type="text/css">
+		<link rel="stylesheet" type="text/css" href="{$basePath}/css/jquery.lightbox-0.5.css" media="screen" />
+		
+		<script src="{$basePath}/js/jquery.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.livequery.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.editinplace.0.4.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.nette.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery-ui.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/netteForms.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.lightbox-0.5.js" type="text/javascript" ></script>
+		<script src="{$basePath}/ckeditor/ckeditor.js" type="text/javascript"></script>
+		<!--[if IE]> 
+		<style type="text/css">
+			select{ background:white; color:black !important;height:20px; }
+		</style>
+		<![endif]-->
+  </head>
+  <body>
+		<div id="page">
+			<div id="header">
+				<a href="/">
+					<img class="left" width="282" height="73" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src='/images/logo.png'); _width:1px; _height:1; " src="/images/logo.png">
+				</a>
+				<div class="login">
+					{include 'loginBox.phtml'}
+				</div>
+				{include 'menu.phtml'}
+				{snippet basket}
+				{include 'basketBox.phtml'}
+				{/snippet}
+				<div class="find">
+					{control searchForm, begin}
+					{control searchForm, errors}
+					{$control['searchForm']['search']->control}
+					{$control['searchForm']['ok']->control}
+					{control searchForm, end}
+				</div>
+				{if isset($mkategorie)}
+				<div class="sort">
+					{control sortForm, begin}
+					{control sortForm, errors}
+					{$control['sortForm']['sort']->label}
+					{$control['sortForm']['sort']->control}
+					{control sortForm, end}
+				</div>
+				{/if}
+			</div>
+  		<div id="main">
+  			<div class="sideleft">
+  			{include 'treeBox.phtml'}
+  			{include 'bestBox.phtml'}
+  			</div>
+ 				<div class="content">
+				{foreach $flashes as $flash}
+					<div class="flash {$flash->type}" onClick="$(this).hide()">{!$flash->message}</div>
+				{/foreach}
+  			{include #content}
+  			</div>
+  			{if !empty($suplements) && empty($complements)}
+  				{include 'suplementBox.phtml'}
+  				{include 'newsBox.phtml'}
+  			{elseif empty($suplements) && !empty($complements)}
+  				{include 'complementBox.phtml'}
+  				{include 'recomendedBox.phtml'}
+  			{elseif !empty($suplements) && !empty($complements)}
+  				{include 'complementBox.phtml'}
+  				{include 'suplementBox.phtml'}
+  			{else}
+  				{include 'newsBox.phtml'}
+  				{include 'recomendedBox.phtml'}
+  			{/if}
+  		</div>
+  		<div id="footer">
+  			<br>
+  			<div style="float:right;margin-right:10px;text-align:left;">
+  			Jan Adamčík<br>
+  			Ptice 10<br>
+  			252 18 - p. Úhonice<br>
+  			IČ: 87644819<br>
+  			+420 728 866 474<br>
+  			<a href="mailto:shop@mercatores.cz">shop@mercatores.cz</a>
+  			</div>
+  			<table class="footer">
+  				<tr>
+  					<td><a href="http://www.landsknechti.cz" target="_blank">www.landsknechti.cz</a> - Landsknechti A.D. 1525</td>
+  				</tr>
+  				<tr>
+  					<td><a href="http://www.livinghistory.cz" target="_blank">www.livinghistory.cz</a> - Český server o "živé historii"</td>
+  				</tr>
+  				<tr>
+  					<td><a href="http://forum.brodec.org" target="_blank">forum.brodec.org</a> - Fórum zabývající se obdobím pozdního středověku</td>
+  				</tr>
+  				<tr>
+  					<td><a href="http://www.arsmaiorum.eu" target="_blank">www.arsmaiorum.eu</a> - Společnost pro zachování a rozvoj evropských bojových umění</td>
+  				</tr>
+  			</table>
+  		</div>
+ 			<div class="link">
+ 			 <div class="afterfooter">
+ 			 	<a href="http://www.nette.org" target="_blank" title="Tato aplikace je postavena na frameworku Nette"><img src="/images/nette-powered.gif"></a>
+ 			 	<a href="http://www.dibiphp.com" target="_blank"  title="Tato aplikace je používá databázový layer Dibi"><img src="/images/dibi-powered.gif"></a>
+ 			 	<a href="http://validator.w3.cz/check?uri={plink '//this'}" target="_blank" title="Tento dokument je validní HTML5"><img src="/images/html5.png" height="14"></a>
+ 			 </div>
+ 			 ©2008-2010 Mercatores • Powered by <a href="http://www.softweb.cz" title="tvorba webových aplikací">Softweb.cz</a>
+  		</div>
+    </div>
+    {control ga}
+  </body>
+</html>

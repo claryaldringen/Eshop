@@ -1,0 +1,21 @@
+{extends '@layout.phtml'}
+{block #iframe}
+				{snippet table}
+					<table id="properties" border="1">
+						<tr><th>Název</th><th>Hodnota</th></tr>
+					{foreach $properties as $property}
+						<tr>
+							<td><input class="prop1" type="text" value="{$property->jmeno}" onChange="$.post({plink setPropName! 'pid'=>$property->id},{ name: this.value })"></td>
+							<td><input type="text" value="{$property->prop}" onChange="$.post({plink setPropVal! 'pid'=>$property->id},{ val: this.value })"></td>
+						</tr>	
+					{/foreach}
+						<tr>
+							<td><input type="text" value="" onFocus="$.get({plink addRow!})"></td>
+							<td><input type="text" value=""></td>
+						</tr>	
+					</table>
+	  		<script type="text/javascript">
+					$('.prop1').last().focus();
+				</script>
+			{/snippet}
+{/block}

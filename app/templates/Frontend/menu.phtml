@@ -1,0 +1,26 @@
+<div id="menu">
+	<ul>
+	{if $user->isInRole('1')}
+		<li>
+		{ifCurrent objednavky}
+		<img width="133" height="22" alt="Objednávky" src="{$baseUri}/images/m_objednavky_a.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_objednavky_a.png); _width:1px; _height:1;">
+		{else}
+		<a href="{plink objednavky}"><img width="133" height="22" alt="Objednávky" src="{$baseUri}/images/m_objednavky.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_objednavky.png); _width:1px; _height:1;"></a>
+		{/ifCurrent}
+		</li>
+	{/if}
+		<li>
+			{ifCurrent podminky}
+			<img width="133" height="22" alt="Podmínky" src="{$baseUri}/images/m_podminky_a.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_podminky_a.png); _width:1px; _height:1;">
+			{else}
+			<a href="{plink podminky}"><img width="133" height="22" alt="Podmínky" src="{$baseUri}/images/m_podminky.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_podminky.png); _width:1px; _height:1;"></a>
+			{/ifCurrent}
+		</li>
+		<li>
+			{ifCurrent kontakt}
+			<img width="133" height="22" alt="Kontakt" src="{$baseUri}/images/m_kontakt_a.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_kontakt_a.png); _width:1px; _height:1;">
+			{else}
+			<a href="{plink kontakt}"><img width="133" height="22" alt="Kontakt" src="{$baseUri}/images/m_kontakt.png" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src=/images/m_kontakt.png); _width:1px; _height:1;"></a></li>
+			{/ifCurrent}
+	</ul>
+</div>	

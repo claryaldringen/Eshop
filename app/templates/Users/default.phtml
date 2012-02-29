@@ -1,0 +1,192 @@
+{block #content}
+<div class="toolbar">
+	<a href="{plink showNewEmail!}" class="button ajax" title="Obchodní sdělení"><img src="{$baseUri}/images/email_edit.png"></a>
+</div>
+
+<table class="usertable" border="1">
+	<tr>
+		<th class="medium">
+			Č.
+			<a href="{plink sort! 'sort'=>'id DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'id ASC'}" class="ajax">▲</a>
+		</th>
+		{foreach $columns as $column}
+			{if $column == 'login'}
+				<th class="big">
+					Login
+					<a href="{plink sort! 'sort'=>'login DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'login ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'jmeno'}
+				<th class="big">
+					Jméno a příjmení
+					<a href="{plink sort! 'sort'=>'prijmeni DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'prijmeni ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'email'}
+				<th class="big2">
+					E-mail
+					<a href="{plink sort! 'sort'=>'email DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'email ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'telefon'}
+				<th class="big">
+					Telefon
+					<a href="{plink sort! 'sort'=>'telefon DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'telefon ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'adresa'}
+				<th>Adresa</th>
+			{/if}
+			{if $column == 'ico'}
+				<th class="medium2">
+					IČ
+					<a href="{plink sort! 'sort'=>'ico DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'ico ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'dic'}
+				<th class="medium2">
+					DIČ
+					<a href="{plink sort! 'sort'=>'dic DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'dic ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'prihlaseni'}
+				<th class="big">
+					Přihlášen
+					<a href="{plink sort! 'sort'=>'lastlogin DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'lastlogin ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+			{if $column == 'firma'}
+				<th class="big">
+					Společnost
+					<a href="{plink sort! 'sort'=>'firma DESC'}" class="ajax">▼</a>
+					<a href="{plink sort! 'sort'=>'firma ASC'}" class="ajax">▲</a>
+				</th>
+			{/if}
+		{/foreach}
+		<th class="medium">
+			Obj.
+			<a href="{plink sort! 'sort'=>'pocet DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'pocet ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium" style="width:87px;">
+			Utratil
+			<a href="{plink sort! 'sort'=>'cena DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'cena ASC'}" class="ajax">▲</a>
+		</th>
+	</tr>
+	<tr>
+		<th class="medium">0</th>
+		{foreach $columns as $column}
+			{if $column == 'login'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'login'})"></td>{/if}
+			{if $column == 'jmeno'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'jmeno,prijmeni'})"></td>{/if}
+			{if $column == 'email'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'email'})"></td>{/if}
+			{if $column == 'telefon'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'telefon'})"></td>{/if}
+			{if $column == 'adresa'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'ulice,mesto,psc'})"></td>{/if}
+			{if $column == 'ico'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'ico'})"></td>{/if}
+			{if $column == 'dic'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'dic'})"></td>{/if}
+			{if $column == 'firma'}<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'firma'})"></td>{/if}
+			{if $column == 'prihlaseni'}<td></td>{/if}
+		{/foreach}
+		<td></td>
+		<td></td>
+	</tr>
+</table>
+<div id="intable">
+{snippet table}
+<table class="usertable" border="1">
+	{foreach $users as $user}
+		<tr class="{if $iterator->isOdd()}odd{else}even{/if}">
+			<th class="medium">{$iterator->getCounter()}</th>
+			{foreach $columns as $column}
+				{if $column == 'login'}<td class="big">{$user->login}</td>{/if}
+				{if $column == 'jmeno'}<td class="big">{$user->jmeno} {$user->prijmeni}</td>{/if}
+				{if $column == 'email'}<td class="big2"><a href="mailto:{$user->email}">{$user->email}</a></td>{/if}
+				{if $column == 'telefon'}<td class="big">{$user->telefon}</td>{/if}
+				{if $column == 'adresa'}<td>{$user->ulice}, {$user->psc} - {$user->mesto}, {$user->stat}</td>{/if}
+				{if $column == 'ico'}<td class="medium2">{$user->ico}</td>{/if}
+				{if $column == 'dic'}<td class="medium2">{$user->dic}</td>{/if}
+				{if $column == 'prihlaseni'}<td class="big">{$user->lastlogin}</td>{/if}
+				{if $column == 'firma'}<td class="big">{$user->firma}</td>{/if}
+			{/foreach}
+			<td class="medium">{$user->pocet}</td>
+			<td class="medium">{$user->cena|money} Kč</td>
+		</tr>
+	{/foreach}
+</table>
+{/snippet}
+</div>
+
+<script type="text/javascript">
+$('#intable').height(document.body.clientHeight-110);
+</script>
+
+{snippet emailDialog}
+	{if isset($showEmailDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Napsat obchodní sdělení</div>
+			{widget emailNForm, begin}
+			<div class="subject">
+				{$control['emailNForm']['emailsub']->label}
+			{$control['emailNForm']['emailsub']->control}
+			</div>
+			<div class="inner2">
+			{$control['emailNForm']['email']->control}
+			<script type="text/javascript">
+    		CKEDITOR.replace( 'email' ,{
+    			toolbar: 'MyToolbar',
+   				height: '327',
+    			width: '753',
+    			filebrowserImageBrowseUrl : '../uploader/index.php',
+    			resize_enabled: false
+    		});
+   		</script>
+			</div>
+			{widget emailNForm, end}
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}
+

@@ -1,0 +1,109 @@
+{block #content}
+{snippet dodani}
+{widget dodaniNForm,begin}
+<div class="adresa">
+	<h3>Faturační údaje</h3>
+	<div class="inadresa">
+	<b>Dodací adresa:</b>
+	<div id="dadresa1">
+	{$control['dodaniNForm']['dadresa']->control}<br>
+	{$control['dodaniNForm']['newdadresa']->control}
+	</div>
+	<div id="dadresa2">
+	{$userdata['realname']}<br>
+	{$userdata['ulice']}<br>
+	{$userdata['psc']} - {$userdata['mesto']}
+	{if $userdata['ico']}IČ: {$userdata['ico']}{/if}
+	{if $userdata['dic']}DIČ: {$userdata['dic']}{/if}
+	<br>
+	<a href="" onClick="$('#dadresa2').hide();$('#dadresa1').show();return false;">Zvolit jinou adresu</a>
+	</div>
+	<div style="height:15px;width:100%"></div>
+	<b>Fakturační adresa:</b>
+	<div id="fadresa1">
+	{$control['dodaniNForm']['fadresa']->control}<br>
+	{$control['dodaniNForm']['newfadresa']->control}
+	</div>
+	<div id="fadresa2">
+	{$userdata['realname']}<br>
+	{$userdata['ulice']}<br>
+	{$userdata['psc']} - {$userdata['mesto']}
+	{if $userdata['ico']}IČ: {$userdata['ico']}{/if}
+	{if $userdata['dic']}DIČ: {$userdata['dic']}{/if}
+	<a href="" onClick="$('#fadresa2').hide();$('#fadresa1').show();return false;">Zvolit jinou adresu</a>
+	</div>
+	</div>
+</div>
+{widget dodaniNForm,errors}
+<div class="dodani">
+	<h3>Dodání a platba</h3>
+		<table class="tab_form">
+		<tr>
+			<td>
+			{$control['dodaniNForm']['dodani']->label}
+			{$control['dodaniNForm']['dodani']->control}
+			</td>
+		</tr>
+		{if isset($control['dodaniNForm']['platba'])}
+		<tr>
+			<td>
+			{$control['dodaniNForm']['platba']->label}
+			{$control['dodaniNForm']['platba']->control}
+			</td>
+		</tr>
+		{/if}
+		<tr>
+			<td colspan="2">
+			{$control['dodaniNForm']['pozn']->label}<br>
+			{$control['dodaniNForm']['pozn']->control}
+			</td>
+		</tr>
+		</table>
+</div>
+<div class="zapati">
+		<table class="basket">
+			<tr class="head" >
+				<th style="width:50px;">Počet</th>
+				<th>Produkt</th>
+				<th>Varianta</th>
+				<th style="width:100px;text-align:right;">Cena</th>
+			</tr>
+		{foreach $basketDetail as $produkt}
+			<tr class="product">
+			<td>
+				{$produkt->pocet}x
+			</td>
+			<td>
+				{$produkt->produkt}
+			</td>
+			<td>
+			{if $produkt->varianta != '-'}{$produkt->varianta}{/if}
+			</td>
+			<td style="width:100px;text-align:right;">
+				{$produkt->cena|currency:czk:$mena}
+			</td>
+		</tr>
+	{/foreach}
+		{if isset($balne)}
+		<tr>
+			<td colspan="3">
+			Poštovné a balné:
+			</td>
+			<th class="cenacelkem" style="font-weight:normal;">{$balne|currency:czk:$mena}</th>
+		</tr>
+		{/if}
+		<tr class="uhrada">
+			<th colspan="3" style="font-weight:bold;text-align:left;">Cena celkem:</th>
+			{if isset($balne)}
+			<th class="cenacelkem">{$basket['cena']+$balne|currency:czk:$mena}</th>
+			{else}
+			<th class="cenacelkem">{$basket['cena']|currency:czk:$mena}</th>
+			{/if}
+		</tr>
+	</table>
+	<div style="text-align:center;">
+		{if isset($control['dodaniNForm']['order'])}{$control['dodaniNForm']['order']->control}{/if}
+	</div>
+	</div>
+	{widget dodaniNForm,end}
+{/snippet}

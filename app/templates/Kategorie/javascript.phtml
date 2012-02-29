@@ -1,0 +1,86 @@
+<script type="text/javascript">
+
+	function deleteItems(status)
+	{
+		var id = $(this).attr('name');
+		var selected;
+		$('.ui-selected').each(function(index){
+			if(!index)selected = $(this).parent().attr('name')
+			else selected = selected + '_' + $(this).parent().attr('name');	
+		});
+		$('.ui-selected').parent().hide();	
+		$.get({plink delete!},{ files: selected,status: status});
+	}
+
+	function copyItems()
+	{
+		var id = $(this).attr('name');
+		var selected;
+		$('.ui-selected').each(function(index){
+			if(!index)selected = $(this).parent().attr('name')
+			else selected = selected + '_' + $(this).parent().attr('name');	
+		});
+		$.get({plink copy!},{ files: selected});
+	}
+
+	$('.draggable').draggable({
+		handle:'img',
+		opacity: 0.7,
+		helper: 'clone'
+	});
+
+	$('.draggable').droppable({
+		drop: function( event, ui ){
+			var id = $(this).attr('name');
+			var selected;
+			$('.ui-selected').each(function(index){
+				if(!index)selected = $(this).parent().attr('name')
+				else selected = selected + '_' + $(this).parent().attr('name');	
+			});
+			if(selected != id)
+			{
+				$('.ui-selected').parent().hide();	
+				$.get({plink move!},{ files: selected,owner: id });
+			}
+		}
+	});
+
+	$('.nodragg').droppable({
+		drop: function( event, ui ){
+			var id = $(this).attr('name');
+			var selected;
+			$('.ui-selected').each(function(index){
+				if(!index)selected = $(this).parent().attr('name')
+				else selected = selected + '_' + $(this).parent().attr('name');	
+			});
+			$.get({plink move!},{ files: selected,owner: id },function(data){
+				if(data.stat == 1)$('.ui-selected').parent().hide();
+			});
+		}
+	});
+
+	$('.sortable').selectable({
+		filter: '.selectable',
+		selected: function(event,ui){ $('#hidden').focus(); }
+	});
+
+	$('.selectable').mousedown(function(){
+		if(!$(this).hasClass('ui-selected'))$('.ui-selected').removeClass('ui-selected');
+		$(this).addClass('ui-selected');
+		$('#hidden').focus();
+	})
+	
+	$('.nazev').change(function(){
+		$.get({plink rename!},{ name: this.name,value: this.value });
+	})
+	
+	$('#hidden').keypress(function(event){
+		if(event.keyCode == '46'){
+			if(confirm('Opravdu odstranit označené?'))deleteItems('del');
+		}
+	});
+	
+	$('li.helper').height($('html').height()-64);
+
+	$('.collections').css('height',$('ul.sortable').height());
+</script>

@@ -1,0 +1,332 @@
+{extends '../@layout.phtml'}
+{block #content}
+<div class="toolbar">
+	{if $status == 'ok'}
+	<a href="{plink newCat! 'type'=>'normal'}" class="button" title="Nová kategorie"><img src="{$baseUri}/images/folder_add.png"></a>
+	<a href="{plink newCat! 'type'=>'collection'}" class="button" title="Nová kolekce"><img src="{$baseUri}/images/collection_add.png"></a>
+	<a href="{plink newProd!}" class="button" title="Nový produkt"><img src="{$baseUri}/images/page_white_add.png"></a>
+	<a href="{plink showSort!}" class="button ajax" title="Řazení"><img src="{$baseUri}/images/text_list_numbers.png"></a>
+	<a href="{plink showText!}" class="button ajax" title="Popisek kategorie"><img src="{$baseUri}/images/page_white_edit.png"></a>
+	<a href="" onClick="copyItems();return false;" class="button" title="Kopírovat"><img src="{$baseUri}/images/page_white_copy.png"></a>
+	{else}
+	<a href="" onClick="deleteItems('ok');return false;" class="button" title="Obnovit vybrané položky"><img src="{$baseUri}/images/bin_empty.png"></a>
+	{/if}
+</div>
+{if $status == 'ok'}
+<input type="text" id="hidden">
+{/if}
+<div class="collections">
+
+<ul>
+	<li class="nodragg" onDblClick="location.href={plink toTheBasket!}">
+		<div class="noselect">
+		<img src="{$baseUri}/images/bin.png">
+		</div>
+	</li>
+<h1>Kolekce</h1>
+{foreach $collections as $folder}
+	<li class="nodragg" name="c-{$folder->id}" onDblClick="location.href={plink 'this' 'id'=>$folder->id}">
+		<div class="selectable">
+		<img src="{$baseUri}/images/blue_folder.png" onClick="$('#hidden').focus();">
+		<input class="nazev" type="text" name="f-{$folder->id}" value="{$folder->jmeno}" onChange="$.get({plink rename!},{ name: this.name,value: this.value });">
+		</div>
+	</li>
+{/foreach}
+</ul>
+</div>
+{if $owner}	
+	<ul>
+	<li class="nodragg" name="f-{$owner->vlastnik}" onDblClick="location.href={plink 'this' 'id'=>$owner->vlastnik}">
+		<div class="noselect">
+		<img src="{$baseUri}/images/folder.png">
+		<span class="nodraggtitle">Zpět</span>
+		</div>
+	</li>
+	</ul>
+{/if}
+<ul class="sortable">
+{foreach $folders as $folder}
+	<li class="draggable" name="f-{$folder->id}" onDblClick="location.href={plink 'this' 'id'=>$folder->id}">
+		<div class="selectable">
+		<img src="{$baseUri}/images/folder.png">
+		<input class="nazev" type="text" name="f-{$folder->id}" value="{$folder->jmeno}" onChange="$.get({plink rename!},{ name: this.name,value: this.value });">
+		</div>
+	</li>
+{/foreach}
+{foreach $items as $item}
+	<li class="draggable" id="foo-{$item->id}" name="i-{$item->id}" onDblClick="$.get({plink showItemDialog! 'item'=>$item->id});">
+		<div class="selectable">
+		<div class="item">
+			<table><tr><td>
+				<img src="{$baseUri}/images/uploaded/mini{$item->image}.jpg" title="{$item->id}">
+			</td></tr></table>
+		</div>
+		<input class="nazev" type="text" name="i-{$item->id}" value="{$item->jmeno}" onChange="$.get({plink rename!},{ name: this.name,value: this.value });">
+		</div>
+	</li>
+{/foreach}
+ <li class="helper"></li> 
+</ul>
+
+
+
+{snippet itemDialog}
+	{if isset($showItemDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">
+				<a href="{plink showOtherItem! 'item'=>$item,'type'=>'prev'}" class="ajax"><img src="{$baseUri}/images/prev.png" title="Předchozí" style="float:left;"></a>
+				<a href="{plink showOtherItem! 'item'=>$item,'type'=>'next'}" class="ajax"><img src="{$baseUri}/images/next.png" title="Následující" style="float:left;"></a>
+				{$name}
+			</div>
+				<ul class="menu">
+					<li>
+						<a class="{if $showItemDialog==1}aktual{/if} ajax" href="{plink showItemDialog! 'item'=>$item,'del'=>true,'tab'=>1}">
+						<img src="{$baseUri}/images/information.png">Vlastnosti
+						</a>
+					</li>
+					<li>
+						<a class="{if $showItemDialog==2}aktual{/if} ajax" href="{plink showItemDialog! 'item'=>$item,'del'=>true,'tab'=>2}">
+						<img src="{$baseUri}/images/user_comment.png">Diskuze
+						</a>
+					</li>
+					<li>
+						<a class="{if $showItemDialog==3}aktual{/if} ajax" href="{plink showItemDialog! 'item'=>$item,'del'=>true,'tab'=>3}">
+						<img src="{$baseUri}/images/special.png">Speciální
+						</a>
+					</li>
+					<li>
+						<a class="{if $showItemDialog==4}aktual{/if} ajax" href="{plink showItemDialog! 'item'=>$item,'del'=>true,'tab'=>4}">
+						<img src="{$baseUri}/images/cart.png">Komplementy
+						</a>
+					</li>
+			</ul>			
+			<div class="inner2">
+			{if $showItemDialog == 1}
+				<div class="leftcolumn">
+				{widget multiFile}
+				<ul id="sortable">
+				{foreach $images as $image=>$popis}
+				<li id="foo-{$image}" class="itemimage">
+					<table><tr><td>
+					<div class="imgdel" onClick="imgdelete({!$image});">X</div>
+					<img src="{$baseUri}/images/uploaded/mini{$image}.jpg">
+					</td></tr></table>
+					<input type="text" value="{$popis}" onChange="$.post({plink renameImg! 'img'=>$image},{ name:this.value })">
+				</li>
+				{/foreach}
+				</ul>
+				</div>
+				<div class="rightcolumn">
+					<div class="rctop">
+					<iframe src="{plink iframe2}" class="props"></iframe>
+					<iframe src="{plink iframe3}" class="vars"></iframe>
+					<br>
+					<div class="dodaniform">
+					{widget dodaniNForm,begin}
+					{$control['dodaniNForm']['dph']->label}
+					{$control['dodaniNForm']['dph']->control}%
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					{$control['dodaniNForm']['dodani']->label}
+					{$control['dodaniNForm']['dodani']->control}dní
+					{widget dodaniNForm,end}
+					</div>
+					</div>
+					<iframe src="{plink iframe}" class="iframe"></iframe>
+				</div>
+			{elseif $showItemDialog == 2}
+				<iframe src="{plink iframe4}" class="iframe4"></iframe>
+			{elseif $showItemDialog == 3}
+				<iframe src="{plink iframe6}" class="iframe4"></iframe>
+			{elseif $showItemDialog == 4}
+				<iframe src="{plink iframe5}" class="iframe4"></iframe>
+			{/if}
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		function imgdelete(id)
+		{
+			if(confirm('Opravdu chcete odstranit tento obrázek?'))
+			{
+				$.get({plink deleteImage!},{ img:id });
+				$('#foo-'+id).hide();
+			}
+		}	
+
+		
+		$('.close').click(function(){
+			$(this).parent().hide();
+		});
+		</script> 	
+	{/if}
+{/snippet}
+
+{snippet sortDialog}
+	{if isset($showSort)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Řazení</div>
+			<div class="inner3">
+				<div class="sortleft">
+				<ul class="dirul">
+				{foreach $cats as $cat}
+					<li id="dir_{$cat->id}">{$cat->jmeno}</li>
+				{/foreach}
+				</ul>
+				</div>
+				<div class="sortright">
+				<ul class="fileul">
+				{foreach $items as $item}
+					<li id="file_{$item->id}">{$item->jmeno}</li>
+				{/foreach}
+				</ul>
+				</div>
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+		//Set the popup window to center
+		$('.window2').css('top',  winH/2-$('.window2').height()/2);
+		$('.window2').css('left', winW/2-$('.window2').width()/2);
+		$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+
+		//sortable
+		 $(".dirul").sortable({
+		      update : function () {
+				    var order = $('.dirul').sortable('serialize');
+		        $.post({plink saveItemSort! 'type'=>'dir'},{ data:order });
+		      }
+		   });	
+
+		 $(".fileul").sortable({
+		      update : function () {
+				    var order = $('.fileul').sortable('serialize');
+		        $.post({plink saveItemSort! 'type'=>'file'},{ data:order });
+		      }
+		   });	
+
+		 </script> 	
+	{/if}
+{/snippet}
+
+{snippet textDialog}
+	{if isset($showTextDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Text kategorie</div>
+			<div class="inner3">
+			{control catTextForm, begin}
+			{$control['catTextForm']['cattext']->control}
+			{control catTextForm, end}
+			<script type="text/javascript">
+    		CKEDITOR.replace( 'cattext' ,{
+    			toolbar: 'MyToolbar',
+   				height: '357',
+    			width: '753',
+    			filebrowserImageBrowseUrl : '.{$baseUri}/uploader/index.php',
+    			resize_enabled: false
+    		});
+   		</script>
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}
+
+{include 'javascript.phtml'}
+
+
+
+

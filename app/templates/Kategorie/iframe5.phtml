@@ -1,0 +1,38 @@
+{extends '@layout.phtml'}
+{block #iframe}
+<div class="innerinner">
+<div class="innerright">
+{control compForm, begin}
+{control compForm, errors}
+
+{$control['compForm']['items']->label}
+<br>
+{$control['compForm']['items']->control}
+<br>
+{$control['compForm']['del']->control}
+{control supForm, end}
+{control supForm, begin}
+{control supForm, errors}
+{$control['supForm']['items']->label}
+<br>
+{$control['supForm']['items']->control}
+<br>
+{$control['supForm']['del']->control}
+{control supForm, end}
+</div>
+{control komplementForm, begin}
+{control komplementForm, errors}
+{$control['komplementForm']['categ']->label}
+<br>
+{$control['komplementForm']['categ']->control}
+<br>
+{$control['komplementForm']['items']->label}
+<br>
+{$control['komplementForm']['items']->control}
+<br>
+{$control['komplementForm']['komp']->control}
+<br>
+{$control['komplementForm']['supl']->control}
+{control komplementForm, end}
+{/block}
+</div>

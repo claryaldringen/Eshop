@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta name="Description" content="" >
+    <meta name="Keywords" content="" >
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta name="Distribution" content="Global" >
+    <meta name="Author" content="Softweb.cz - www.softweb.cz" >
+    <meta name="Robots" content="all, index, follow" >
+    <title></title>
+		<link rel="stylesheet" media="screen,projection,tv" href="{$basePath}/css/screen.css" type="text/css">
+		<link rel="stylesheet" media="screen,projection,tv" href="{$basePath}/css/admin.css" type="text/css">
+		<link rel="stylesheet" media="screen,projection,tv" href="{$basePath}/css/fileuploader.css" type="text/css">
+		<link rel="stylesheet"  href="{$basePath}/css/icons.css" type="text/css">
+		<link rel="stylesheet"  href="{$basePath}/css/datagrid.css" type="text/css">
+		<link rel="stylesheet"  href="{$basePath}/css/smoothness-upraveno/ui.all.css" type="text/css">
+		<script src="{$basePath}/js/jquery.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.livequery.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.editinplace.0.4.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery.nette.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/jquery-ui.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/fileuploader.js" type="text/javascript"></script>
+		<script src="{$basePath}/js/netteForms.js" type="text/javascript"></script>
+		<script type="text/javascript" src="/ckeditor/ckeditor.js"></script>
+		<script type="text/javascript" src="{$basePath}/js/scripts.js"></script>
+	</head>
+  <body>
+  {include 'menu.phtml'}
+  {include #content}
+  {foreach $flashes as $flash}
+  	<script>
+  		alert({$flash->message});
+  	</script>
+  {/foreach}
+  </body>
+</html>

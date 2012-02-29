@@ -1,0 +1,43 @@
+ 	<div class="kosik">
+ 	{*<h1><a href="{plink basket}">Košík</a></h1>*}
+ 	{control currencyForm, begin}
+ 	{if $user->isLoggedIn()}
+ 		{if $basket['pocet']}
+ 		<a href="{plink basket}">
+ 		{$basket['pocet']} {if $basket['pocet'] == 1}položka{elseif $basket['pocet'] < 5}položky{else}položek{/if}<br> 
+ 		za {$basket['cena']|currency:czk:$mena}
+ 		</a>
+ 		<p style="padding-bottom:6px;">
+ 		{$control['currencyForm']['dodani']->label}
+ 		{$control['currencyForm']['dodani']->control} 
+ 		{$control['currencyForm']['platba']->label}
+ 		{$control['currencyForm']['platba']->control}
+ 		<div style="height:3px"></div>
+ 		Cena objednávky včetně nákladů za přepravu a finanční transakci:
+ 		<br>
+ 		<span style="font-size:18px;line-height:32px;">
+ 		{if isset($balne)}
+ 			{$basket['cena']+$balne|currency:czk:$mena}
+ 		{else}
+ 			{$basket['cena']|currency:czk:$mena}
+ 		{/if}
+ 		</span>
+ 		<br>
+ 		{$control['currencyForm']['mena']->label}
+ 		{$control['currencyForm']['mena']->control} 
+ 		</p>
+ 		<a href="{plink basket}">Pokračovat k objednávce</a>
+ 		{else}
+ 		Košík je prázdný.
+ 		<br><br>
+ 		{$control['currencyForm']['mena']->label}
+ 		{$control['currencyForm']['mena']->control}
+ 		{/if}
+ 	{else}
+ 		Košík je prázdný.
+ 		<br><br>
+ 		{$control['currencyForm']['mena']->label}
+ 		{$control['currencyForm']['mena']->control}
+ 	{/if}
+ 	{control currencyForm, end}
+ 	</div>

@@ -1,0 +1,358 @@
+{block #content}
+<div class="toolbar">
+	<a href="{plink showNewPayment!}" class="button ajax" title="Nový způsob platby"><img src="{$baseUri}/images/money_add.png"></a>
+	<a href="{plink showNewDodani!}" class="button ajax" title="Nový způsob doručení"><img src="{$baseUri}/images/package_add.png"></a>
+</div>
+
+{snippet tabulka}
+<table border="1" class="dodani">
+	<tr>
+	<th>&nbsp;</th>
+{foreach $payments as $key=>$value}
+	<th>
+		<a href="{plink showNewPayment! 'id'=>$key}" class="ajax">{$value}</a>
+		{*<a href="{plink showNewEmail! 'id'=>$key,'typ'=>'platba'}" class="ajax" title="Editovat odesílaný email"><img src="{$baseUri}/images/email_edit.png"></a>*}
+	</th>
+{/foreach}
+	</tr>
+	{foreach $dodani as $key=>$value}
+	<tr>
+		<th>
+			<a href="{plink showNewDodani! 'id'=>$key}" class="ajax">{$value}</a>
+			<a href="{plink showNewEmail! 'id'=>$key, type=>'dodani'}" class="ajax" title="Editovat odesílaný email"><img src="{$baseUri}/images/email_edit.png"></a>
+		</th>
+		{foreach $payments as $key2=>$value2}
+		<td>
+			<a href="{plink setPayment! 'platba'=>$key2,'dodani'=>$key}" style="text-decoration:none;" class="ajax">
+				{if $payments2[$key2][$key]}
+					<img src="{$baseUri}/images/tick.png">
+				{else}
+					<img src="{$baseUri}/images/cross.png">
+				{/if}
+			</a>
+			&nbsp;
+			{if $payments2[$key2][$key]}
+				<a href="{plink showNewEmail! 'id'=>$payments2[$key2][$key],'type'=>'platba'}" class="ajax" title="Editovat odesílaný email">
+					<img src="{$baseUri}/images/email_edit.png">
+				</a>
+			{/if}
+		</th>
+		{/foreach}
+	</tr>
+	{/foreach}
+</table>
+{/snippet}
+
+{snippet paymentDialog}
+	{if isset($showPaymentDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Vlastnosti platby</div>
+			<div class="inner3">
+			{control paymentNForm,begin}
+			{control paymentNForm,errors}
+			{$control['paymentNForm']['id']->control}
+			<table>
+				<tr>
+					<td>{$control['paymentNForm']['jmeno']->label}</td>
+					<td>{$control['paymentNForm']['jmeno']->control}</td>
+					<td>{$control['paymentNForm']['jmeno_'.$lang]->label}</td>
+					<td>{$control['paymentNForm']['jmeno_'.$lang]->control}</td>
+					<td>{$control['paymentNForm']['cena_do']->label}</td>
+					<td>{$control['paymentNForm']['cena_do']->control}</td>
+				</tr>
+					<td colspan="6">
+						Vyberte země ve kterých je možno takto platit:
+						<div class="countryselect">
+						<div class="toolbar">
+						<a href="" class="button" title="Vybrat vše" onClick="$('input:checkbox').attr('checked','0');return false;"><img src="{$baseUri}/images/accept.png"></a>
+						<a href="" class="button" title="Nevybrat nic" onClick="$('input:checkbox').removeAttr('checked');return false;"><img src="{$baseUri}/images/cross.png"></a>
+						</div>
+						<table class="platbatable" border="1">
+							<tr>
+								<th>Země určení</th>
+								<th>Nákupní cena</th>
+								<th>Prodejní cena</th>
+							</tr>
+						{foreach $countries as $key=>$val}
+							<tr>
+								<td>
+									{$control['paymentNForm'][$key.'_check']->control}
+									{$control['paymentNForm'][$key.'_check']->label}	
+								</td>
+								<td>
+									{$control['paymentNForm'][$key.'_ncena']->control}
+								</td>
+								<td>
+									{$control['paymentNForm'][$key.'_cena']->control}
+								</td>
+							</tr>
+						{/foreach}
+						</table>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="6" style="text-align:center;">
+					{if isset($id)}<a href="{plink delete! 'id'=>$id,'typ'=>1}">&nbsp;Smazat tento způsob platby</a>{/if}
+					{$control['paymentNForm']['save']->control}
+					</td>
+				</tr>
+			</table>
+			{control paymentNForm,end}
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+
+		nette.initForm($('frm-paymentNForm'));
+		</script> 	
+	{/if}
+{/snippet}
+
+{snippet dodaniDialog}
+	{if isset($showDodaniDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Vlastnosti dodání</div>
+			<div class="inner3">
+			{control dodaniNForm,begin}
+			{control dodaniNForm,errors}
+			{$control['dodaniNForm']['id']->control}
+			<table>
+				<tr>
+					<td>{$control['dodaniNForm']['jmeno']->label}</td>
+					<td>{$control['dodaniNForm']['jmeno']->control}</td>
+					<td>{$control['dodaniNForm']['zdarma_od']->label}</td>
+					<td>{$control['dodaniNForm']['zdarma_od']->control}</td>
+					<td>{$control['dodaniNForm']['stav']->label}</td>
+					<td>{$control['dodaniNForm']['stav']->control}</td>
+				</tr>
+				<tr>
+					<td colspan="6">
+						Vyberte země kam lze takto dodávat a ceny za jaké lze do zvolených zemí dodávat:
+						<div class="countryselect">
+						<div class="toolbar">
+						<a href="" class="button" title="Vybrat vše" onClick="$('input:checkbox').attr('checked','0');return false;">
+							<img src="{$baseUri}/images/accept.png"></a>
+						<a href="" class="button" title="Nevybrat nic" onClick="$('input:checkbox').removeAttr('checked');return false;">
+							<img src="{$baseUri}/images/cross.png"></a>
+						</div>
+						<table class="dodanitable" border="1">
+							<tr>
+								<th>Země určení</th>
+								<th>do 1 kg</th>
+								<th>do 2 kg</th>
+								<th>do 3 kg</th>
+								<th>do 5 kg</th>
+								<th>do 7 kg</th>
+								<th>do 10 kg</th>
+								<th>do 12 kg</th>
+								<th>do 15 kg</th>
+								<th>do 20 kg</th>
+								<th>do 25 kg</th>
+								<th>do 30 kg</th>
+								<th>do 35 kg</th>
+								<th>do 40 kg</th>
+								<th>do 50 kg</th>
+							</tr>
+						{foreach $countries as $key=>$val}
+							<tr>
+								<td>
+									{$control['dodaniNForm'][$key.'_check']->control}
+									{$control['dodaniNForm'][$key.'_check']->label}
+									&nbsp;
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_1_ncena']->control}{$control['dodaniNForm'][$key.'_1_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_2_ncena']->control}{$control['dodaniNForm'][$key.'_2_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_3_ncena']->control}{$control['dodaniNForm'][$key.'_3_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_5_ncena']->control}{$control['dodaniNForm'][$key.'_5_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_7_ncena']->control}{$control['dodaniNForm'][$key.'_7_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_10_ncena']->control}{$control['dodaniNForm'][$key.'_10_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_12_ncena']->control}{$control['dodaniNForm'][$key.'_12_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_15_ncena']->control}{$control['dodaniNForm'][$key.'_15_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_20_ncena']->control}{$control['dodaniNForm'][$key.'_20_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_25_ncena']->control}{$control['dodaniNForm'][$key.'_25_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_30_ncena']->control}{$control['dodaniNForm'][$key.'_30_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_35_ncena']->control}{$control['dodaniNForm'][$key.'_35_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_40_ncena']->control}{$control['dodaniNForm'][$key.'_40_cena']->control}
+								</td>	
+								<td>
+									{$control['dodaniNForm'][$key.'_50_ncena']->control}{$control['dodaniNForm'][$key.'_50_cena']->control}
+								</td>	
+							</tr>
+						{/foreach}
+						</table>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="6" style="text-align:center;">
+					{if isset($id)}<a href="{plink delete! 'id'=>$id,'typ'=>2}">&nbsp;Smazat tento způsob platby</a>{/if}
+					{$control['dodaniNForm']['save']->control}
+					</td>
+				</tr>
+			</table>
+			{control dodaniNForm,end}
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+
+		nette.initForm($('frm-dodaniNForm'));
+		</script> 	
+	{/if}
+{/snippet}
+
+{snippet emailDialog}
+	{if isset($showEmailDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Emailové potvrzení zákazníkovi</div>
+			{widget emailNForm, begin}
+			<div class="subject">
+				{$control['emailNForm']['emailsub']->label}
+			{$control['emailNForm']['emailsub']->control}
+			</div>
+			<div class="inner2">
+			{$control['emailNForm']['typ']->control}
+			{$control['emailNForm']['id']->control}
+			{$control['emailNForm']['email']->control}
+			<script type="text/javascript">
+    		CKEDITOR.replace( 'email' ,{
+    			toolbar: 'MyToolbar',
+   				height: '327',
+    			width: '753',
+    			filebrowserImageBrowseUrl : '../uploader/index.php',
+    			resize_enabled: false
+    		});
+   		</script>
+			</div>
+			{widget emailNForm, end}
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}

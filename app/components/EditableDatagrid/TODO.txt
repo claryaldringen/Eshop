@@ -1,0 +1,4 @@
+
+Chybové hlášky
+ - Nezobrazovat pùvodní vyplnìnou hodnotu, ale aktuální hodnotu z databáze.
+

@@ -1,0 +1,85 @@
+	<style>
+		.sort{
+			float:left;
+			width:70px;
+			height:100px;
+			margin:10px;
+			list-style-type:none;
+		}
+		
+		.up{
+			float:left;
+			width:70px;
+			height:100px;
+			margin:10px;
+			list-style-type:none;
+		}
+		
+		.capt{
+			text-align:center;	
+			min-width:70px;
+			min-height:15px;
+		}
+		
+		.bin{
+			width:70px;
+			height:100px;
+			margin:10px;
+			float:right;	
+		}
+	</style>
+{widget panel}
+	<ul class="selectable">
+	<div class="bin">
+		<img src="/images/gallery/bin_64.png" width="64" height="64">
+	</div>
+{foreach $images as $image}
+	<li class="sort image" id="i-{$image->id}">
+		<div>
+			<div style="width:64px;height:57px;border:solid 1px gray;text-align:center;padding-top:7px;margin-bottom:1px;">
+			<a href="/images/uploaded/large{$image->id}.jpg">
+				<img src="/images/uploaded/mini{$image->id}.jpg" style="border:solid 1px gray;">
+			</a>
+			</div>
+			{foreach $langs as $lang}
+			<div  class="capt" contenteditable="true" onBlur="$.post({link setPopis! 'id'=>$image->id,'lang'=>$lang->zkratka},{ popis:$(this).text() })">{$image['popis_'.$lang->zkratka]}</div>
+			{/foreach}
+		</div>
+	</li>
+{/foreach}
+	</ul>
+	<script>
+		{if $lock}
+		$('.selectable').sortable({
+			update : function () {
+	  		var order = $(".selectable").sortable('serialize');
+	    	$.post({link sort!},{ data:order },function(data){ });
+	  		}
+		});
+		{else}
+		$('.sort').draggable({
+			handle: 'img',
+			opacity: 0.7,
+			helper: 'clone'
+		});
+
+		$('.folder').droppable({
+			drop: function(event, ui)
+			{
+				$(ui.draggable).hide();
+				$.post({link move!},{ co: $(ui.draggable).attr('id'),kam: $(this).attr('id') });
+			}
+		})	
+		
+		$('.bin').droppable({
+			drop: function(event, ui)
+			{
+				if(confirm('Opravdu chcete odstranit tento objekt?'))
+				{
+					$(ui.draggable).hide();
+					$.post({link delete!},{ co: $(ui.draggable).attr('id') });
+				}
+			}
+		});
+		{/if}	
+	</script>

@@ -1,0 +1,194 @@
+{block #content}
+<div class="toolbar">
+<a href="" onClick="$('#penalization').submit();return false;" class="button" title="Uložit"><img src="{$baseUri}/images/disk.png"></a>
+<a href="" onClick="$('#win1').show();return false;" class="button" title="Zobraz nastavení jazyka"><img src="{$baseUri}/images/book_open.png"></a>
+<a href="{plink showCountryDialog!}" class="button ajax" title="Zobraz státy odběru"><img src="{$baseUri}/images/flags/gb.png"></a>
+<a href="{plink showText!}" class="button ajax" title="Oznámení na úvodní stranu"><img src="{$baseUri}/images/page_white_edit.png"></a>
+<div style="float:left;margin-left:5px;margin-right:10px;">
+</div>
+{control currencyForm}
+</div>
+<div class="plocha">
+	<div>
+	<form id="penalization" action="{plink save!}" method="post">
+	<table class="ctable" border="1">
+	<tr>
+	<th>&nbsp;</th>
+	{foreach $countries as $country}
+		<th>
+			<input id="{$iterator->getCounter()}" type="checkbox" name="{$country->iso}" onClick="select1(this,event);">
+			<img src="{$baseUri}/images/flags/{$country->iso|lower}.png" title="{$country->name}">
+		</th>
+	{/foreach}
+	</tr>
+	{foreach $items as $key=>$val}
+	<tr>
+		<th class="itemnadpis">
+		<input id="100{$iterator->getCounter()}" type="checkbox" name="{$key}" onClick="select2(this,event);">
+		{$val}
+		</th>
+		{foreach $countries as $country}
+		<td class="{$country->iso} i{$key}">
+			<input class="cell" type="text" name="{$country->numcode}-{$key}" value="{if isset($tax[$country->numcode][$key])}{$tax[$country->numcode][$key]}{/if}" onKeyUp="zapis(this)" onChange="zapis(this)">
+		</td>
+		{/foreach}
+	</tr>
+	{/foreach}
+	</table>
+	</form>
+	</div>
+
+<div id="win1" class="window1" style="left:400px;display:none;">
+	<div class="close"></div>
+	<div class="title">Jazyky</div>
+	<div class="inner4">
+	{snippet language}
+		<table id="properties" border="1">
+			<tr><th>Zkratka</th><th>Název</th></tr>
+			{foreach $langs as $lang}
+			<tr>
+				<td><input class="flag1" type="text" value="{$lang->zkratka}" onChange="$.post({plink setLang! 'lid'=>$lang->id,'typ'=>'zkratka'},{ val: this.value })"></td>
+				<td><input type="text" value="{$lang->name}" onChange="$.post({plink setLang! 'lid'=>$lang->id,'typ'=>'name'},{ val: this.value })"></td>
+			</tr>	
+			{/foreach}
+			<tr>
+				<td><input type="text" value="" onFocus="$.get({plink addRow!})"></td>
+				<td><input type="text" value=""></td>
+			</tr>	
+		</table>
+ 		<script type="text/javascript">
+			$('.flag1').last().focus();
+		</script>
+	{/snippet}
+	</div>
+</div>
+</div>
+<script type="text/javascript">
+	$('.plocha').height(document.body.clientHeight-66);
+	$('#win1').draggable({
+		handle: '.title',
+		containment: '.plocha'
+	});
+
+	var winH = $(window).height();
+	var winW = $(window).width();
+      
+	//Set the popup window to center
+	$('#win1').css('top',  winH/2-$('#win1').height()/2);
+	$('#win1').css('left', winW/2-$('#win1').width()/2);
+	$('.close').click(function(){
+			$(this).parent().hide();
+	});
+</script>
+
+{snippet countryDialog}
+	{if isset($showCountries)}
+		<div id="win2" class="window1">
+			<div class="close"></div>
+			<div class="title">Státy odběru</div>
+			<div class="inner4">
+			<table id="courses" border="1">
+				{foreach $countries2 as $country}
+				<tr>
+					<td>{$country->name}</td>
+					<td>
+						<a href="{plink toggle! 'stat'=>$country->iso}" class="ajax">
+						{if $country->activated}
+							<img src="{$baseUri}/images/tick.png" onClick="toglimg(this)">
+						{else}
+							<img src="{$baseUri}/images/cross.png" onClick="toglimg(this)">
+						{/if}
+						</a>
+					</td>
+				</tr>
+				{/foreach}
+			</table>
+			</div>
+		</div>
+		<script>
+		function toglimg(obj)
+		{
+			if($(obj).attr('src') == '{$baseUri}/images/tick.png')$(obj).attr('src','{$baseUri}/images/cross.png');
+			else $(obj).attr('src','{$baseUri}/images/tick.png');
+		}
+
+		$('#win2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('#win2').css('top',  winH/2-$('#win2').height()/2);
+			$('#win2').css('left', winW/2-$('#win2').width()/2);
+			$('#win2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}
+
+{snippet textDialog}
+	{if isset($showTextDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Oznámení na úvodní stranu</div>
+			<div class="inner3">
+			{control catTextForm, begin}
+			{$control['catTextForm']['cattext']->control}
+			{control catTextForm, end}
+			<script type="text/javascript">
+    		CKEDITOR.replace( 'cattext' ,{
+    			toolbar: 'MyToolbar',
+   				height: '357',
+    			width: '753',
+    			filebrowserImageBrowseUrl : '../uploader/index.php',
+    			resize_enabled: false
+    		});
+   		</script>
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}
+
+
+

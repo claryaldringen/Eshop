@@ -1,0 +1,32 @@
+{foreach $messages as $message}
+	<div class="discuss-message">
+		<div class="discuss-title">
+			{$message->datum|date:'%T %d.%m.%Y'} <b>{$message->user}</b>
+			{if $user->isInRole('2')}
+			<span><a href="{link delete! 'id'=>$message->id}">smazat</a></span>
+			{/if}
+		</div>
+		<div class="discuss-text">{!$message->text}</div>
+	</div>
+{/foreach}
+{if $user->isInRole('1')}
+	{control discussForm, begin}
+	{control discussForm, errors}
+	{$control['discussForm']['text']->control}
+	{$control['discussForm']['product']->control}
+
+	{$control['discussForm']['mail']->control}
+	{$control['discussForm']['mail']->label}
+	<div class="komentbutt">
+	{* {$control['discussForm']['send']->control} *}
+	</div>
+	{control discussForm, end}
+  <script type="text/javascript">
+    CKEDITOR.replace( 'text' ,{
+    toolbar: 'TinyToolbar',
+    height: '157',
+    width: '582',
+    resize_enabled: false
+    });
+   </script>
+ {/if}

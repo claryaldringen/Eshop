@@ -1,0 +1,202 @@
+{block #content}
+<div class="toolbar">
+	{control stavNForm, begin}
+	{$control['stavNForm']['stav']->control}
+	{$control['stavNForm']['month']->control}
+	{$control['stavNForm']['year']->control}
+	{control stavNForm, end}
+</div>
+<table border="1" class="orders">
+	<tr>
+		<th class="medium">
+			Č.O.
+			<a href="{plink sort! 'sort'=>'O.id DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'O.id ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="big2">Adresa</th>
+		<th style="width:540px;">
+			<table>
+				<tr>
+					<td class="item1">Počet</td>
+					<td class="item2">Produkt a varianta</td>
+					<td class="item3">Cena za kus</td>
+					<td class="item4">Cena celkem</td>
+				</tr>
+			</table>
+		</th>
+		<th>Poznámka</th>
+		<th class="big">
+			Dodání, platba, cena
+			<a href="{plink sort! 'sort'=>'O.cena DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'O.cena ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium2">Stav</th>
+		<th class="big" style="width:167px;">Zisk</th>
+	</tr>
+</table>
+<div id="intable">
+{snippet table}
+<table border="1" class="orders">
+{foreach $orders as $order}
+	<tr>
+		<td class="first medium">
+		<span class="big">{$order->id}</span>
+		<br>
+		{$order->datum|date: "%d.%m.%Y"}
+		{if $order->stav == 'odeslano'}
+			{$order->zmena|date: "%d.%m.%Y"}
+		{/if}
+		</td>
+		<td class="big2">
+			{if $order->dadresa}
+				{!$order->dadresa|nl2br}
+			{else}
+			<b>{$order->user->jmeno} {$order->user->prijmeni}</b><br>
+			{$order->user->ulice}<br>
+			{$order->user->psc} - {$order->user->mesto}<br>
+			{/if}
+			<a href="mailto:{$order->user->email}">{$order->user->email}</a><br>
+			{$order->user->telefon}
+		</td>
+		<td style="width:540px;">
+			<table>
+				{foreach $order->items as $item}
+				<tr style="cursor:default;">
+					<td class="item1"><a href="" onClick="cmdwin('Zadejte množství:',{$item->count},{plink setCount! 'id'=>$item->id});return false;">{$item->count} {$item->kus}</a></td>
+					<td class="item2">
+						<span onMouseOver="showItem({plink showItem! 'itemid'=>$item->iid},event)" onMouseOut="$('#image').hide()">
+						{$item->jmeno} 
+						</span>
+						{if $item->type=='special'}
+							<a href="{plink special 'id'=>$item->var_id}">{$item->varname}</a>
+						{else}
+							{$item->varname}
+						{/if}
+					</td>
+					<td class="item3"><a href="" onClick="cmdwin('Zadejte slevu v %:',{$item->sleva},{plink setSleva! 'id'=>$item->id});return false;">{$item->cena*(1-($item->sleva/100))|number: '2':',':' '} Kč</a></td>
+					<td class="item4">{$item->cena*(1-($item->sleva/100))*$item->count|number: '2':',':' '} Kč</td>
+					<td>
+						{if $item->type=='special'}
+						<a href="" onClick="cmdwin('Zadejte cenu:',{$item->cena},{plink setPrice! 'id'=>$item->id});return false;">
+							<img src="{$baseUri}/images/money.png" title="Vložit cenu" width="12" height="12"></a>
+						{/if}
+						<a href="{plink delete! 'id'=>$item->id}" onClick="if(!confirm('Opravdu chcete odstranit tuto položku z objednávky?'))return false">
+							<img src="{$baseUri}/images/cross.png" title="Odstranit" width="12" height="12"></a>
+					</td>
+				</tr>
+				{/foreach}
+			</table>
+		</td>
+		<td class="poznamka">
+			{$order->pozn}&nbsp;
+		</td>
+		<td class="big">
+			<span class="big">{$order->cena|number: '2':',':' '} Kč</span><br>
+			Dodání: <b>{$order->dodani} - {if $order->zdarma_od > $order->cena}{$order->dodani_cena}{else}0{/if} Kč</b><br>
+			Platba: <b>{$order->platba} - {$order->platba_cena} Kč</b>
+		</td>
+		<td class="medium2">
+			{if $order->stav == 'prijato'}
+				{if $order->zaplaceno == $order->cena}
+					<span class="green">Zaplaceno</span>
+				{elseif $order->zaplaceno == 0}
+					<span class="red">Nezaplaceno</span>
+				{elseif $order->zaplaceno > $order->cena}
+					<span class="orange">Přeplatek {?echo $order->zaplaceno-$order->cena} Kč</span>
+				{else}
+					<span class="orange">Nedoplatek {?echo $order->cena-$order->zaplaceno} Kč</span>
+			{/if}
+			{/if}
+			<br>
+			{if $order->stav == 'prijato'}Expedice: <b>{$order->expedice} dní</b>{/if}
+			{$stavNForm[$order->id]}
+			{if $order->stav == 'prijato'}
+				<a href="{plink storno! 'id'=>$order->id}" onClick="if(!confirm('Opravdu chcete objednávku stornovat?'))return false">
+					<img src="{$baseUri}/images/cross.png" title="Stornovat"></a>
+				<a href="" onClick="cmdwin('Zadejte číslo objednávky, se kterou chcete tuto sloučit:','',{plink merge! 'id'=>$order->id});return false;" >
+					<img src="{$baseUri}/images/arrow_in.png" title="Sloučit s jinou objednávkou"></a>
+				<a href="{plink showDialog! 'id'=>$order->id}" class="ajax"><img src="{$baseUri}/images/arrow_out.png" title="Rozdělit objednávku"></a>
+				<a href="{plink cheque 'id'=>$order->id}"><img src="{$baseUri}/images/printer.png" title="Tisk složenky"></a>
+			{else}
+				{if $order->invoice}
+				<a href="{plink faktura! 'id'=>$order->id}"><img src="{$baseUri}/images/page_white_acrobat.png" title="Zobrazit fakturu"></a>
+				{else}
+				<a href="{plink faktura! 'id'=>$order->id}">Vytvořit fakturu</a>
+				{/if}
+			{/if}
+		</td>
+		<td class="big">
+		<table>
+		<tr><td>N. cena</td><td><b>{$order->ncena|number: '2':',':' '} Kč</b></td></tr>
+		<tr><td>P. cena:</td><td><b>{$order->cena|number: '2':',':' '} Kč</b></td></tr>
+		<tr><td>Zisk:</td><td><b>{$order->zisk|number: '2':',':' '} Kč</b></td></tr>
+		<tr><td>Zisk:</td><td><b>{if $order->cena > 0}{?echo round(($order->zisk/$order->cena)*100,2)}{else}??{/if}%</b></td></tr>
+		</table>
+		</td>
+	</tr>
+	{? $czisk[0] += $order->ncena;$czisk[1] += $order->cena;$czisk[2] += $order->zisk; }
+{/foreach}
+	<tr>
+		<td colspan="6" style="border:none;"></td>
+		<td>
+		{$czisk[0]|number: '2':',':' '} Kč<br>
+		{$czisk[1]|number: '2':',':' '} Kč<br>
+		<b>{$czisk[2]|number: '2':',':' '} Kč</b>
+		</td>
+	</tr>
+</table>
+{/snippet}
+</div>
+<script type="text/javascript">
+$('#intable').height(document.body.clientHeight-90);
+</script>
+
+<img src="" width="400" height="300" id="image" onClick="$(this).hide()">
+
+{snippet dialog}
+	{if isset($showDialog)}
+		<div class="window2">
+			<div class="close"></div>
+			<div class="title">Rozdělit objednávku</div>
+			<div class="inner3">
+			{control diffForm}
+			</div>
+		</div>
+		<script>
+		$('#sortable').sortable({ 
+			axis: 'y',
+			update : function () {
+			    var order = $('#sortable').sortable('serialize');
+	        $.post({plink saveSort!},{ data:order });
+	     }
+		});
+
+		$('.window2').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.ui-selected').removeClass('ui-selected');
+
+		$('.itemimage').mousedown(function(){
+			$('.itemimage').removeClass('img-selected');
+			$('.imgdel').css('visibility','hidden');
+			$(this).addClass('img-selected');
+			$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+		});
+
+		var winH = $(window).height();
+		var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window2').css('top',  winH/2-$('.window2').height()/2);
+			$('.window2').css('left', winW/2-$('.window2').width()/2);
+			$('.window2').show();
+
+		$('.close').click(function(){
+			location.reload(true);
+		});
+		</script> 	
+	{/if}
+{/snippet}
+

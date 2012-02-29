@@ -1,0 +1,87 @@
+{extends '@layout.phtml'}
+{block #iframe}
+<div class="innerinner">
+	<div class="innerright">
+	{snippet specialForm3}
+		<a href="{plink showCond! 'cond'=>0}" class="ajax">Vlastnosti parametru</a>
+		&nbsp;&nbsp;
+		<a href="{plink showCond! 'cond'=>1}" class="ajax">Cenové podmínky</a>
+		{if $spectype}
+			{control specialForm5, begin}
+			{$control['specialForm5']['condition']->label}<br>
+			{$control['specialForm5']['condition']->control}<br>
+			{control specialForm5, errors}
+			{$control['specialForm5']['ok']->control}
+			{control specialForm5,end}
+		{else}
+			{control specialForm3}
+		{/if}
+	{/snippet}
+	{control specialForm4,begin}
+	{$control['specialForm4']['popis']->label}<br>
+	{$control['specialForm4']['popis']->control}<br>
+	{$control['specialForm4']['ok']->control}
+	{control specialForm4,end}
+	</div>
+	<div class="innerright">
+		&nbsp;&nbsp;
+		<div class="leftcolumn2">
+		{control multiFile2}
+				<ul id="sortable">
+				{foreach $images as $image=>$popis}
+				<li id="foo-{$image}" class="itemimage">
+					<table><tr><td>
+					<div class="imgdel" onClick="imgdelete({!$image});">X</div>
+					<img src="/images/uploaded/mini{$image}.jpg">
+					</td></tr></table>
+					<input type="text" value="{$popis}" onChange="$.post({plink renameImg! 'img'=>$image},{ name:this.value })">
+				</li>
+				{/foreach}
+				</ul>
+		</div>
+	</div>
+	<b>Cena (základ):</b>
+	<input type="text" value="{$cena}" onChange="$.post({plink setCena!},{ cena:this.value })" size="5">Kč
+	<br><br>
+	{control specialForm1, begin}
+	{control specialForm1, error}
+	{$control['specialForm1']['newSpecial']->label}<br>
+	{$control['specialForm1']['newSpecial']->control}
+	{$control['specialForm1']['add']->control}
+	{control specialForm1, end}
+	{control specialForm2, begin}
+	{control specialForm2, error}
+	{$control['specialForm2']['specials']->label}<br>
+	{$control['specialForm2']['specials']->control}<br>
+	{$control['specialForm2']['del']->control}
+	{control specialForm2, end}
+	
+</div>
+<script type="text/javascript">
+$('#sortable').sortable({ 
+	axis: 'y',
+	update : function () {
+	    var order = $('#sortable').sortable('serialize');
+    $.post({plink saveSort!},{ data:order });
+ }
+});
+
+$('.ui-selected').removeClass('ui-selected');
+
+$('.itemimage').mousedown(function(){
+	$('.itemimage').removeClass('img-selected');
+	$('.imgdel').css('visibility','hidden');
+	$(this).addClass('img-selected');
+	$(this).children().children().children().children().children('.imgdel').css('visibility','visible');
+});
+
+function imgdelete(id)
+{
+	if(confirm('Opravdu chcete odstranit tento obrázek?'))
+	{
+		$.get({plink deleteImage!},{ img:id });
+		$('#foo-'+id).hide();
+	}
+}	
+</script>
+{/block}

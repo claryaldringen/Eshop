@@ -1,0 +1,24 @@
+  {if $user->isInRole('1')}
+  	<a href="{plink Frontend:registration}">
+  	{$user->getIdentity()->data['realname']}&nbsp;
+  	({$user->getIdentity()->data['login']})
+  	</a>
+  	&nbsp;&nbsp;&nbsp;
+  	<a href="{plink logout!}">Odhlásit se</a>
+  {else}
+  	{widget loginNForm, begin}
+  	{widget loginNForm, errors}
+  	<table>
+  		<tr>
+  			<td>{$control['loginNForm']['nick']->control}</td>
+		  	<td>{$control['loginNForm']['password']->control}</td>
+  			<td>{$control['loginNForm']['login']->control}</td>
+  		</tr>
+  		<tr>
+  			<td><a href="{plink forgotten}">Zapomenuté heslo?</a></td>
+  			<td><a href="{plink registration}">Registrovat se</a></td>
+  			<td></td>
+  		</tr>
+  	</table>
+  	{widget loginNForm, end}
+  {/if}

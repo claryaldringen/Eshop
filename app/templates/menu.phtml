@@ -1,0 +1,9 @@
+<ul class="menu">
+	<li><a {ifCurrent Kategorie:default}class="aktual"{/ifCurrent} href="{plink Kategorie:default 'id'=>0}"><img src="{$baseUri}/images/cart.png">Kategorie&amp;sortiment</a></li>
+	<li><a {ifCurrent Product:default}class="aktual"{/ifCurrent} href="{plink Product:default}"><img src="{$baseUri}/images/cart_edit.png">Sklad</a></li>
+	<li><a {ifCurrent Orders:default}class="aktual"{/ifCurrent} href="{plink Orders:default}"><img src="{$baseUri}/images/money.png">Objednávky</a></li>
+	<li><a {ifCurrent Payment:default}class="aktual"{/ifCurrent} href="{plink Payment:default}"><img src="{$baseUri}/images/package_go.png">Doručení&amp;platby</a></li>
+	<li><a {ifCurrent Users:default}class="aktual"{/ifCurrent} href="{plink Users:default}"><img src="{$baseUri}/images/user_suit.png">Uživatelé</a></li>
+	<li><a {ifCurrent Settings:default}class="aktual"{/ifCurrent} href="{plink Settings:default}"><img src="{$baseUri}/images/page_white_gear.png">Nastavení</a></li>
+	{* <li><a href=""><img src="/images/group.png">statistiky</a></li> *}
+</ul>

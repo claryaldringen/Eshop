@@ -1,0 +1,20 @@
+	<div id="{$name}">		
+		<noscript>			
+			<p>Please enable JavaScript to use file uploader.</p>
+			<!-- or put a simple form for upload here -->
+		</noscript>     
+	</div>
+    <script>        
+            var uploader = new qq.FileUploader({
+                element: document.getElementById({$name}),
+                action: '{!$link}',
+                allowedExtensions: [{!$allowedExtensions}],   
+                sizeLimit: {!$maxSize},
+                minSizeLimit: {!$minSize},
+                debug: false,
+                title: '{!$label}'
+            });           
+        
+        // in your app create uploader as soon as the DOM is ready
+        // don't wait for the window to load  
+    </script> 

@@ -1,0 +1,41 @@
+{snippet textDialog}
+	{if isset($showTextDialog)}
+		<div class="window">
+		<div class="title">Editovat text<a href="#" class="close" onClick="$(this).parent().parent().hide();return false;">X</a></div>
+		<div style="padding-left:10px;padding-top:20px;">
+		{foreach $langs as $lang}
+			<a href="{plink showTextDialog! id=>$showTextDialog,lang=>$lang->zkratka}" class="ajax">{$lang->zkratka}</a>
+		{/foreach}	
+			{widget textEditNForm, begin}
+			{widget textEditNForm, errors}
+			{$control['textEditNForm']['obsah']->control}
+  		<script type="text/javascript">
+    	CKEDITOR.replace( 'obsah' ,{
+    		toolbar: 'MyToolbar2',
+   	 		height: '350',
+    		width: '660',
+    		filebrowserImageBrowseUrl : '../uploader/index.php',
+    		resize_enabled: false
+    	});
+	</script>
+			{widget textEditNForm, end}
+		</div>
+		</div>
+		<script>
+		$('.window').draggable({ 
+			handle: '.title',
+			containment: 'body'
+		});
+
+		$('.window').keypress(function(e){ if(e.keyCode == 13){ $('.authNForm').submit(); } })
+			var winH = $(window).height();
+			var winW = $(window).width();
+      
+			//Set the popup window to center
+			$('.window').css('top',  winH/2-$('.window').height()/2);
+			$('.window').css('left', winW/2-$('.window').width()/2);
+			$('.window').show();
+			
+		</script> 	
+	{/if}
+{/snippet}

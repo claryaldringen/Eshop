@@ -1,0 +1,52 @@
+{block #content}
+<h2>Váš košík</h2>
+<p>
+Zde můžete zkontrolovat zboží ve vašem košíku. Pokud vše souhlasí, pokračujte tlačítkem <i>K objednávce</i>.
+Pokud počty zboží neodpovídají, můžete je opravit přímo v tabulce a kliknutím na tlačítko <i>Uložit</i> 
+změny uložíte.
+</p>
+
+{widget inBasketNForm, begin}
+{widget inBasketNForm, errors}
+<table class="basket">
+	<tr class="head">
+		<th style="width:50px;">Počet</th>
+		<th >Produkt</th>
+		<th>Varianta</th>
+		<th style="width:100px;text-align:right;">Cena</th>
+	</tr>
+{if empty($basketDetail)}	
+	<tr><td colspan="4">Košík je prázdný</td></tr>
+{/if}
+{foreach $basketDetail as $produkt}
+	<tr>
+		<td>
+			{$control['inBasketNForm']['pocet_'.$produkt->id]->control}
+			{$control['inBasketNForm']['pocet_'.$produkt->id]->label}
+		</td>
+		<td>
+			{$produkt->produkt}
+		</td>
+		<td>
+			{if $produkt->varianta != '-'}{$produkt->varianta}{/if}
+		</td>
+		<td style="width:100px;text-align:right;">
+			{$produkt->cena|currency:czk:$mena}
+		</td>
+	</tr>
+{/foreach}
+	<tr>
+	<td colspan="3" style="text-align:left;height:30px;">Cena celkem:</td>
+	<td class="cenacelkem">{$basket['cena']|currency:czk:$mena}</td>
+	</tr>
+</table>
+{if $basket['pocet']}
+<table style="width:100%;text-align:center;">
+	<tr>
+		<td>{$control['inBasketNForm']['save']->control}</td>
+		<td>{$control['inBasketNForm']['delete']->control}</td>
+		<td>{$control['inBasketNForm']['toorder']->control}</td>
+	</tr>
+</table>
+{/if}
+{widget inBasketNForm, end}

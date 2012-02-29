@@ -1,0 +1,136 @@
+{block #content}
+<div class="slevaitems">
+<h3>&nbsp;Aktuální slevy</h3>
+{foreach $products as $product}
+	<div class="produkt">
+		<div class="nadpis">
+			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
+			<h2>{$product->jmeno|truncate:25}</h2>
+			</a>
+		</div>
+ 			<div class="sleva">{if $product->sleva > 0}{$product->sleva}% sleva{/if}</div>
+ 			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
+				<img height="120" style="max-width:164px; _width: expression(document.body.clientWidth > 164? '164px' : 'auto' );" src="{$baseUri}/images/uploaded/medium{$product->image}.jpg">
+			</a>
+			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
+				<p>
+				{!$product->popis|stripTags|truncate:120}
+				</p>
+			</a>
+		<div class="cena">
+		{if $product->pocetVar == 1}
+			
+			<div class="cenastara">
+			{if $product->sklad}{$product->sklad}x skladem{/if}
+			{if $product->sleva > 0}{$product->sleva}% sleva{/if}
+			</div>
+			<div class="cenanova">{if $showprices}{$product->cena|currency:czk:$mena}{/if}</div>
+			</div>
+			<div class="productform">
+			{if $showprices}
+			{control $product->form begin}
+			{control $product->form errors}
+			{$product->form['pocet']->control}
+			{$product->form['tobasket']->control}
+			{control $product->form end}
+			{/if}
+			</div>
+		{elseif isset($product->scena) && $product->scena}
+			<div class="cenastara">{if $product->sklad}Skladem{/if}</div>
+			<div class="cenanova">{if $showprices}<span class="cenacislo">od</span> {$product->scena|currency:czk:$mena}{/if}</div>
+			</div>
+		{else}
+			<div class="cenastara">{if $product->sklad}Skladem{/if}</div>
+				<div class="cenanova">
+					{if $showprices}
+					<span class="cenacislo">od</span>
+					{if isset($product->cenastara)}<span class="cenastara">{$product->cenastara}</span>{/if}
+			 		{$product->cena|currency:czk:$mena}
+					{/if}
+			 </div>
+			</div>
+		{/if}
+		</div>
+{/foreach}
+</div>
+
+{*<div class="kdebudem" >
+	<h3 style="font-size:12px;">Nejbližší akce kde budeme</h3>
+	<div class="underline">
+		23. - 24. dubna 2011 - Libušín
+		<p style="font-size:10px;">
+		Tradiční všešermířská bitva
+		</p>
+	</div>
+</div>*}
+
+<div class="mainpaper">
+<p>
+<span style="font-size:15px;color:#D00000;">V</span>ítejte na stránkách internetového obchodu Mercatores.<br>
+Naše nabídka zahrnuje vysoce kvalitní repliky dobových artefaktů od předmětů všedního života až po bojovou výbavu. 
+</p>
+<h3>Pokud přesně víte, co chcete...</h3>
+<p>
+...pokračujte prosím do našeho katalogu a vybírejte z 
+<a href="{plink kategorie 'path'=>'civilni-odev-a-osobni-vybava'}">civilní výbavy</a>, 
+<a href="{plink kategorie 'path'=>'valecna-vystroj'}">válečné výstroje</a>, 
+<a href="{plink kategorie 'path'=>'taborova-vybava'}">táborové výbavy</a>, 
+<a href="{plink kategorie 'path'=>'remesla-a-materialy'}">potřeb pro řemeslníky</a> a 
+<a href="{plink kategorie 'path'=>'hracky-a-hry'}">dalších</a>.
+</p>
+<h3>Pokud ještě přesně nevíte, co chcete...</h3>
+<p>
+...máte několik možností:
+</p>
+	<ol>
+		<li>
+		<b>Kontaktovat nás prostřednictvím <a href="{plink kontakt}#kontakt">kontaktního formuláře</a> nebo 
+		<a href="mailto:shop@mercatores.cz">e-mailu.</a></b>
+		Pomůžeme Vám s výběrem vhodných doplňků pro Vaši postavu a s její celkovou rekonstrukcí, 
+		tak aby vyhovovala z hlediska doby a sociální vrstvy, kterou představujete.<br><br>
+		</li>
+		<li>
+		<b><a href="{plink kategorie 'path'=>'civilni-odev-a-osobni-vybava'}">Projít si náš katalog.</a></b>
+		U každého předmětu je podrobný popis a zařazení. U některých kategorií je navíc článek, pojednávající o dané skupině produktů, 
+		ve kterém mimojiné naleznete i to, jak poznat kvalitní repliku a na co se zaměřit.
+		</li>
+	</ol>
+
+<h3>Proč zvolit právě Mercatores?</h3>
+<p>
+<ul>
+	<li>
+	Vyjdeme Vám maximálně vstříc, ať už se jedná o radu, opatření výrobků, které nemáme v nabídce či způsobu doručení a platby.<br><br>
+	</li>
+	<li>
+	Ke každému výrobku se snažíme najít zdroj, ať už v archeologických nálezech nebo ikonografii. Díky tomu si stojíme za uváděnými
+	informacemi a také datací.<br><br>
+	</li>
+	<li>
+	Víme, že nemůžeme rozumět všemu, proto využíváme služeb odborníků: předních českých archeologů zaměřených zejména 
+	na středověké reálie, zvláště pak zbraně, zbrojířů, kovářů a platnéřů, kteří při výrobě používají dobové postupy a vyrábějí repliky mj.
+	i pro muzea a v neposlední řadě historiků, díky kterým můžeme naše výrobky zařadit do kontextu doby.<br><br>
+	</li>
+	<li>
+	Naše výrobky sami používáme, protože chceme mít to nejlepší. Díky tomu je dokonale známe a víme, že jsou plně funční.
+	Vám nyní nabízíme stejnou kvalitu, jaké si dopřáváme my sami. <br><br>
+	</li>
+	<li>
+	Někteří lidé neradi komunikují e-mailem či po telefonu. Jsme si toho vědomi a proto u nás můžete i zakázkové výrobky objednat pomocí
+	webových formulářů - rychle, snadno a efektivně.<br><br>
+	</li>
+	<li>
+	Znáte nás osoně, nejsme jacísi anonymní obchodníci, ale jezdíme po stejných akcích jako Vy a aktivně se jich účastníme.
+	<br><br>
+	</li>
+</ul>
+</div>
+<br><br>
+<div>
+{if !empty($text)}
+<h1>Oznámení</h1>
+<div style="padding-left:10px;">
+{!$text}
+</div>
+{/if}
+</div>

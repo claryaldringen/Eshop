@@ -1,0 +1,27 @@
+		<table style="border-collapse:collapse;" border="1">
+			<tr>
+				<th style="width:50px;text-align:left;">Počet</th>
+				<th style="width:300px;text-align:left;">Produkt a varianta</th>
+				<th style="width:70px;text-align:right;padding-right:5px;">Cena</th>
+			</tr>
+		{foreach $items as $produkt}
+			<tr>
+			<td>
+				{$produkt->pocet}x
+			</td>
+			<td>
+				{$produkt->produkt}
+				{$produkt->varianta}
+			</td>
+			<td style="width:70px;text-align:right;padding-right:5px;">
+				{$produkt->cena|currency:czk:$mena}
+			</td>
+			</tr>
+		{/foreach}
+		<tr>
+			<th colspan="2" style="font-weight:bold;text-align:left;">Cena celkem:</th>
+			<th style="width:70px;text-align:right;padding-right:5px;">{$basket['cena']|currency:czk:$mena}</th>
+		</tr>
+	</table>
+	<br><br>
+	{include 'special.phtml'}

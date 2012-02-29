@@ -1,0 +1,17 @@
+  <div class="sidebar">
+ 		<div class="sidebar_top"><a href="{plink kategorie 'path'=>'doporucujeme'}"><h2>Doplňky</h2></a></div>
+ 		<div class="sidebar_middle">
+ 		 {foreach $complements as $item}
+ 			<div class="polozka">
+ 				<a href="{plink detail 'path'=>$item->path,'produkt'=>$item->link}">
+ 				<img src="{$baseUri}/images/uploaded/mini{$item->image}.jpg">
+ 				<h3>{$item->jmeno|truncate:20}</h3>
+ 				</a>
+				{if $showprices}
+ 				Cena: {$item->cena|currency:czk:$mena}
+				{/if}
+ 			</div>
+ 		 {/foreach}
+ 		</div>
+ 		<div class="sidebar_bottom"></div>
+	</div>

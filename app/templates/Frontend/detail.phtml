@@ -1,0 +1,93 @@
+{block #content}
+<h1>{$product->jmeno}</h1>
+<div class="levy">
+{snippet foto}
+	<a href="{$baseUri}/images/uploaded/large{$aktualfoto}.jpg" rel="lightbox[galerie]" title="">
+		<img src="{$baseUri}/images/uploaded/large{$aktualfoto}.jpg" title="{if isset($val)}{$val}{/if}" width="240" class="mainimage">
+	</a>
+	{foreach $product->images as $key=>$val}
+		{if $key != $aktualfoto}
+			<a href="{$baseUri}/images/uploaded/large{$key}.jpg" rel="lightbox[galerie]" title="{if isset($val)}{$val}{/if}" >
+				<img class="miniature" src="{$baseUri}/images/uploaded/mini{$key}.jpg">
+			</a>
+		{/if}
+	{/foreach}
+{/snippet}
+{control hodnoceni}
+</div>
+<div class="pravy" style="font-size:12px;">
+<div class="skladem" style="font-size:16px;">Dodací lhůta : {$product->dodani} dní</div>
+<br>
+{foreach $product->properties as $key=>$val}
+		<h2 class="proph2"><b>{$key}:</b> {$val}</h2>
+		{/foreach}
+<br>
+<h2 class="proph2">
+	<b>Popis:</b>
+</h2>
+{!$product->popis}
+</div>
+<div style="clear:both;">
+{if $showprices}
+{if isset($specialForm)}
+	<div class="special">
+	{widget $specialForm}
+	</div>
+{else}
+	{widget detailNForm, begin}
+	{widget detailNForm, errors}
+	<table class="vartable">
+	{if count($product->variants) > 1}
+		<tr>
+			<th>Varianta</th>
+			<th>Cena</th>
+			<th>Skladem</th>
+			<th>&nbsp;</th>
+		</tr>
+	{/if}
+	{foreach $product->variants as $var}
+		<tr>
+			{if count($product->variants) > 1}
+			<td>{$var->jmeno}</td>
+			{/if}
+			<td>
+			{if $var->sleva}
+				<span class="cenastara2">
+				{$var->cena*(1+$product->dph/100)|currency:czk:$mena}
+				{if $var->kus}/{$var->kus}{/if}
+				</span>
+				&nbsp;
+			{/if}
+			{?$cenanova = ceil($var->cena*(1-$var->sleva/100)*(1+$product->dph/100))}
+			{$cenanova|currency:czk:$mena}{if $var->kus}/{$var->kus}{/if}
+			
+			{if $var->sleva}
+				<span class="sleva">
+				&nbsp;sleva {$var->sleva}%
+				</span>
+			{/if}
+			</td>
+			<td>
+				{if $var->sklad}{$var->sklad} {if $var->kus}{$var->kus}{else}x{/if} skladem{else}není skladem{/if}
+			</td>
+			<td>
+			{$control['detailNForm']['var_'.$var->id]->control}
+			{$control['detailNForm']['sub_'.$var->id]->control}
+			</td>
+		</tr>
+	{/foreach}
+	</table>
+	{widget detailNForm, end}
+{/if}
+{/if}
+<br>
+<hr>
+<h4>Komentáře:</h4>
+{control discussion}
+</div>
+<script>
+$(function(){
+	$('a[rel*=lightbox]').lightBox();
+});
+</script>
+

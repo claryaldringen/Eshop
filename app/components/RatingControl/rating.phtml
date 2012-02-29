@@ -1,0 +1,15 @@
+<div class="hodnoceni">
+{snippet hodnoceni}
+Hodnocení ({$hlasy} hlasů):
+<br>
+{for $i=1;$i<6;$i++}
+	{if $user->isInRole('1')}<a href="{link ohodonot! 'hodnoceni'=>$i,'prod'=>$produkt}" class="ajax">{/if}
+	{if round($hodnoceni) >= $i}
+		<img src="/images/hod_act.gif" alt="">
+	{else}
+		<img src="/images/hod_non.gif" alt="">
+	{/if}
+	{if $user->isInRole('1')}</a>{/if}
+{/for}
+{/snippet}
+</div>

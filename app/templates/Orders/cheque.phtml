@@ -1,0 +1,35 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+	</head>
+	<body>
+		<table border="0" style="border-collapse:collapse;">
+			<tr>
+			 <td style="width:62mm;vertical-align:top;font-size:4mm;padding-left:1mm;">
+			 	<div style="height:34mm;">&nbsp;</div>
+			 	<div style="height:6mm;text-align:right;padding-right:18mm;">{$order->cena}</div>
+			 	<div style="height:11mm;">{$order->cena|inWords}</div>
+			 	<div style="height:17mm;">{$owner->name}<br>{$owner->street}<br>{$owner->postcode} - {$owner->city}</div>
+			 	<div style="height:5mm;padding-left:11mm;">{$owner->prefix}{if $owner->prefix}-{/if}{$owner->account}/{$owner->bank}</div>
+			 	<div style="height:5mm;padding-left:11mm;">{$order->id}</div>
+			 	<div style="height:4mm;padding-left:11mm;">&nbsp;</div>
+			 	<div style="height:20mm;">{$order->jmeno} {$order->prijmeni}<br>{$order->ulice}<br>{$order->psc} - {$order->mesto}</div>
+			 </td>
+			 <td style="width:57mm;vertical-align:top;padding-left:1mm;">
+			 	<div style="height:34mm;">&nbsp;</div>
+			 	<div style="height:17mm;">{$owner->name}<br>{$owner->street}<br>{$owner->postcode} - {$owner->city}</div>
+			 </td>
+			 <td style="width:88mm;vertical-align:top;font-family:courier;font-size:5mm;">
+			 	<div style="height:7mm;">&nbsp;</div>
+			 	<div style="height:6mm;padding-left:2mm;">{$order->cena|fillZeros:8}</div>
+			 	<div style="height:3mm;">&nbsp;</div>
+			 	<div style="height:6mm;padding-left:2mm;">{$owner->prefix|fillNbsp:6}{$owner->account|fillNbsp:10}</div>
+			 	<div style="height:3mm;">&nbsp;</div>
+			 	<div style="height:6mm;padding-left:2mm;">{$owner->bank}&nbsp;&nbsp;{$order->id|fillNbsp:10}</div>
+			 	<div style="height:18mm;">&nbsp;</div>
+			 	<div style="height:20mm;padding-left:2mm;">{$order->jmeno}<br>{$order->prijmeni}<br>{$order->ulice}<br>{$order->mesto}<br>{$order->psc}</div>
+			 </td>
+			</tr>
+		</table>
+	</body>
+</html>

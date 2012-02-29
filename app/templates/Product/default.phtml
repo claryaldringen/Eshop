@@ -1,0 +1,154 @@
+{block #content}
+<div class="toolbar">
+	{widget catNForm}
+</div>
+
+<table class="skladtable" border="1">
+	<tr>
+		<th>Produkt a varianta</th>
+		{foreach $additionals as $additional}
+		<th class="medium">
+			<a href="" class="ajax">{$additional->nazev}</a>
+			<a href="{plink sort! 'sort'=>$additional->name.' DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>$additional->name.' ASC'}" class="ajax">▲</a>
+		</th>
+		{/foreach}
+		<th class="medium">
+			Váha
+			<a href="{plink sort! 'sort'=>'hmotnost DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'hmotnost ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">
+			Kód
+			<a href="{plink sort! 'sort'=>'kod DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'kod ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">CZ</th>
+		<th class="medium">
+			DPH %
+			<a href="{plink sort! 'sort'=>'dph DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'dph ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">
+			Sklad
+			<a href="{plink sort! 'sort'=>'sklad DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'sklad ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium" title="Minimální sklad">
+			Min
+			<a href="{plink sort! 'sort'=>'minsklad DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'minsklad ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium" title="Nákupní cena">
+			NC
+			<a href="{plink sort! 'sort'=>'ncena DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'ncena ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">
+			Cena
+			<a href="{plink sort! 'sort'=>'V.cena DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'V.cena ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">
+			Sleva
+			<a href="{plink sort! 'sort'=>'V.sleva DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'V.sleva ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium"title="Celková nákupní cena">
+			CNC
+			<a href="{plink sort! 'sort'=>'(sklad*ncena) DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'(sklad*ncena) ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium"title="Celková prodejní cena">
+			CPC
+			<a href="{plink sort! 'sort'=>'(sklad*V.cena) DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'(sklad*V.cena)ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium"title="Celkový zisk">
+			C. Zisk
+			<a href="{plink sort! 'sort'=>'((sklad*V.cena)-(sklad*ncena)) DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'((sklad*V.cena)-(sklad*ncena)) ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium">
+			Zisk
+			<a href="{plink sort! 'sort'=>'(V.cena-ncena) DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'(V.cena-ncena) ASC'}" class="ajax">▲</a>
+		</th>
+		<th class="medium" style="width:87px;">
+			Zisk %
+			<a href="{plink sort! 'sort'=>'(V.cena-ncena) DESC'}" class="ajax">▼</a>
+			<a href="{plink sort! 'sort'=>'(V.cena-ncena) ASC'}" class="ajax">▲</a>
+		</th>
+	</tr>
+	<tr>
+		<td><input type="text" style="width:100%;" onKeyUp="filter(this,{plink filter! 'name'=>'P.jmeno_'.$lang})"></td>
+		{foreach $additionals as $additional}
+		<td style="background:#CCCCCC;"></td>
+		{/foreach}
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+		<td style="background:#CCCCCC;"></td>
+	</tr>
+</table>
+<div id="intable">
+{snippet table}
+<table class="skladtable" border="1">
+{foreach $products as $item}
+	<tr class="{if $iterator->isOdd()}odd{else}even{/if}" {if !$iterator->isLast() && $item->sklad < $item->minsklad}style="background:#FFC1B1;"{/if}>
+		{if !$iterator->isLast()}
+		<td>
+			<input type="text" class="product" id="product-{$iterator->getCounter()}" onKeyPress="posun(this,event);" value="{$item->jmeno}" name="i-{$item->id}" onChange="$.get({plink rename!},{ name: this.name,value: this.value });">
+			<input type="text" class="variant" id="variant-{$iterator->getCounter()}" onKeyPress="posun(this,event);" value="{$item->varname}" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ jmeno: this.value })">
+		</td>
+		{foreach $additionals as $additional}
+		<td class="medium"><input type="text" value="{$item[$additional->name]}" id="{$additional->name}-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setAdditional! 'pid'=>$item->id},{ {$additional->name}: this.value })"></td>
+		{/foreach}
+		<td class="medium"><input type="text" value="{$item->hmotnost}" id="hmotnost-{$iterator->getCounter()}" style="text-align:right;" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ hmotnost: this.value })">g</td>
+		<td class="medium"><input type="text" value="{$item->kod}" id="kod-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->id},{ kod: this.value })"></td>
+		<td class="medium">
+			<input type="checkbox" {if $item->show}checked{/if} style="margin:0px;">
+		</td>
+		<td class="medium"><input type="text" value="{$item->dph}" id="dph-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.get({plink setDph! 'pid'=>$item->id},{ dph: this.value })"></td>
+		<td class="medium"><input type="text" value="{$item->sklad}" id="sklad-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ sklad: this.value })"></td>
+		<td class="medium"><input type="text" value="{$item->minsklad}" id="minsklad-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ minsklad: this.value })"></td>
+		<td class="medium"><input type="text" value="{$item->ncena}" id="ncena-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ ncena: this.value })"></td>
+		<td class="medium"><input type="text" value="{$item->cena}" id="cena-{$iterator->getCounter()}" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ cena: this.value })"></td>
+		<td class="medium"><input type="text" value="{$item->sleva}" id="sleva-{$iterator->getCounter()}" style="text-align:right;" onKeyPress="posun(this,event);" onChange="$.post({plink setVariant! 'pid'=>$item->vid},{ sleva: this.value })">%</td>
+		<td class="medium"><i>{$item->cnc}</i></td>
+		<td class="medium"><i>{$item->cpc}</td>
+		<td class="medium"><i>{$item->czisk}</td>
+		<td class="medium"><i>{$item->zisk}</td>
+		<td class="medium"><i>{$item->pzisk}%</i></td>
+		{? $celkem[0] += $item->cnc;$celkem[1] += $item->cpc; }
+		{else}
+		<th colspan="5">&nbsp;</th>
+		{foreach $additionals as $additional}
+		<th>&nbsp;</th>
+		{/foreach}
+		<th>{if isset($item->sklad)}{$item->sklad}{/if}</th>
+		<th colspan="4">&nbsp;</th>
+		<th>{$celkem[0]}</th>
+		<th>{$celkem[1]}</th>
+		<th>{if isset($item->czisk)}{$item->czisk}{/if}</th>
+		<th>&nbsp;</th>
+		<th>{if isset($item->ppzisk)}{$item->ppzisk}{/if}%</th>
+		{/if}
+	</tr>	
+{/foreach}
+</table>
+{/snippet}
+</div>
+<script type="text/javascript">
+$('#intable').height(document.body.clientHeight-110);
+</script>

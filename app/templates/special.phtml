@@ -1,0 +1,39 @@
+{if isset($specs)}
+{foreach $specs as $specials}
+<table border="1" style="border-collapse:collapse;width:420px;">
+	{foreach $specials->spec as $name=>$value}
+		<tr>
+			<td>{$name}:</td>
+			<td>{$value}</td>
+		</tr>
+	{/foreach}
+	<tr>
+		<td colspan="2">
+		{foreach $specials->images as $image}
+			<a href="{$baseUri}/images/uploaded/large{$image}.jpg">
+				<img src="{$baseUri}/images/uploaded/medium{$image}.jpg" style="border:solid 1px;">
+			</a>
+		{/foreach}
+		</td>
+	</tr>
+</table>
+<br>
+{/foreach}
+{else}
+<table border="1" style="border-collapse:collapse;width:420px;">
+	{foreach $specials->spec as $name=>$value}
+		<tr>
+			<td>{$name}:</td>
+			<td>{$value}</td>
+		</tr>
+	{/foreach}
+	<tr>
+		<td colspan="2">
+		{foreach $specials->images as $image}
+			<a href="{$baseUri}/images/uploaded/large{$image}.jpg">
+				<img src="{$baseUri}/images/uploaded/medium{$image}.jpg" style="border:solid 1px;margin:2px;"></a>
+		{/foreach}
+		</td>
+	</tr>
+</table>
+{/if}
