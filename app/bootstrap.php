@@ -7,6 +7,7 @@
 
 // Step 1: Load Nette Framework
 require_once LIB_DIR . '/Nette/loader.php';
+require_once LIB_DIR . '/dibi/dibi.php';
 
 // Step 2: Enable Nette\Debug for better exception and error visualisation
 NDebugger::$strictMode = TRUE;
