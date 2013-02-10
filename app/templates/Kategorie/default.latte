@@ -34,7 +34,7 @@
 {/foreach}
 </ul>
 </div>
-{if $owner}	
+{if $owner}
 	<ul>
 	<li class="nodragg" name="f-{$owner->vlastnik}" onDblClick="location.href={plink 'this' 'id'=>$owner->vlastnik}">
 		<div class="noselect">
@@ -49,6 +49,9 @@
 	<li class="draggable" name="f-{$folder->id}" onDblClick="location.href={plink 'this' 'id'=>$folder->id}">
 		<div class="selectable">
 		<img src="{$baseUri}/images/folder.png">
+		{if $folder->image}
+		<img src="{$baseUri}/images/uploaded/medium{$folder->image}.png" width="64" height="64" class="category-image">
+		{/if}
 		<input class="nazev" type="text" name="f-{$folder->id}" value="{$folder->jmeno}" onChange="$.get({plink rename!},{ name: this.name,value: this.value });">
 		</div>
 	</li>
@@ -65,7 +68,7 @@
 		</div>
 	</li>
 {/foreach}
- <li class="helper"></li> 
+ <li class="helper"></li>
 </ul>
 
 
@@ -100,7 +103,7 @@
 						<img src="{$baseUri}/images/cart.png">Komplementy
 						</a>
 					</li>
-			</ul>			
+			</ul>
 			<div class="inner2">
 			{if $showItemDialog == 1}
 				<div class="leftcolumn">
@@ -144,7 +147,7 @@
 			</div>
 		</div>
 		<script>
-		$('#sortable').sortable({ 
+		$('#sortable').sortable({
 			axis: 'y',
 			update : function () {
 			    var order = $('#sortable').sortable('serialize');
@@ -152,7 +155,7 @@
 	     }
 		});
 
-		$('.window2').draggable({ 
+		$('.window2').draggable({
 			handle: '.title',
 			containment: 'body'
 		});
@@ -168,7 +171,7 @@
 
 		var winH = $(window).height();
 		var winW = $(window).width();
-      
+
 			//Set the popup window to center
 			$('.window2').css('top',  winH/2-$('.window2').height()/2);
 			$('.window2').css('left', winW/2-$('.window2').width()/2);
@@ -181,13 +184,13 @@
 				$.get({plink deleteImage!},{ img:id });
 				$('#foo-'+id).hide();
 			}
-		}	
+		}
 
-		
+
 		$('.close').click(function(){
 			$(this).parent().hide();
 		});
-		</script> 	
+		</script>
 	{/if}
 {/snippet}
 
@@ -214,7 +217,7 @@
 			</div>
 		</div>
 		<script>
-		$('#sortable').sortable({ 
+		$('#sortable').sortable({
 			axis: 'y',
 			update : function () {
 			    var order = $('#sortable').sortable('serialize');
@@ -222,7 +225,7 @@
 	     }
 		});
 
-		$('.window2').draggable({ 
+		$('.window2').draggable({
 			handle: '.title',
 			containment: 'body'
 		});
@@ -238,7 +241,7 @@
 
 		var winH = $(window).height();
 		var winW = $(window).width();
-      
+
 		//Set the popup window to center
 		$('.window2').css('top',  winH/2-$('.window2').height()/2);
 		$('.window2').css('left', winW/2-$('.window2').width()/2);
@@ -254,16 +257,16 @@
 				    var order = $('.dirul').sortable('serialize');
 		        $.post({plink saveItemSort! 'type'=>'dir'},{ data:order });
 		      }
-		   });	
+		   });
 
 		 $(".fileul").sortable({
 		      update : function () {
 				    var order = $('.fileul').sortable('serialize');
 		        $.post({plink saveItemSort! 'type'=>'file'},{ data:order });
 		      }
-		   });	
+		   });
 
-		 </script> 	
+		 </script>
 	{/if}
 {/snippet}
 
@@ -274,12 +277,14 @@
 			<div class="title">Text kategorie</div>
 			<div class="inner3">
 			{control catTextForm, begin}
+			{$control['catTextForm']['catimg']->label}
+			{$control['catTextForm']['catimg']->control}
 			{$control['catTextForm']['cattext']->control}
 			{control catTextForm, end}
 			<script type="text/javascript">
     		CKEDITOR.replace( 'cattext' ,{
     			toolbar: 'MyToolbar',
-   				height: '357',
+   				height: '329',
     			width: '753',
     			filebrowserImageBrowseUrl : '.{$baseUri}/uploader/index.php',
     			resize_enabled: false
@@ -287,8 +292,8 @@
    		</script>
 			</div>
 		</div>
-		<script>
-		$('#sortable').sortable({ 
+		<script type="text/javascript">
+		$('#sortable').sortable({
 			axis: 'y',
 			update : function () {
 			    var order = $('#sortable').sortable('serialize');
@@ -296,7 +301,7 @@
 	     }
 		});
 
-		$('.window2').draggable({ 
+		$('.window2').draggable({
 			handle: '.title',
 			containment: 'body'
 		});
@@ -312,7 +317,7 @@
 
 		var winH = $(window).height();
 		var winW = $(window).width();
-      
+
 			//Set the popup window to center
 			$('.window2').css('top',  winH/2-$('.window2').height()/2);
 			$('.window2').css('left', winW/2-$('.window2').width()/2);
@@ -321,11 +326,11 @@
 		$('.close').click(function(){
 			location.reload(true);
 		});
-		</script> 	
+		</script>
 	{/if}
 {/snippet}
 
-{include 'javascript.phtml'}
+{include 'javascript.latte'}
 
 
 

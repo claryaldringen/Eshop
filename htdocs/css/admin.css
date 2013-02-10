@@ -6,7 +6,7 @@ body{
 }
 
 ul{
-	list-style-type:none;	
+	list-style-type:none;
 	padding:0px;
 }
 
@@ -36,7 +36,7 @@ a.button img{
 	border: none;
 	margin-left: 4px;
 	margin-top:4px;
-}	
+}
 
 a.button:hover{
 	border: solid 1px #A0A0A0;
@@ -141,7 +141,7 @@ ul.menu a:hover{
 }
 
 ul.menu a.aktual{
-	background:url('../images/zalozka3.jpg');	
+	background:url('../images/zalozka3.jpg');
 	font-weight:bold;
 }
 
@@ -222,13 +222,13 @@ li.itemimage{
 div.item table{
 	width:100%;
 	height:100%;
-	text-align:center;	
+	text-align:center;
 }
 
 li.itemimage table{
 	width:100%;
 	height:87px;
-	text-align:center;	
+	text-align:center;
 }
 
 div.item img{
@@ -245,11 +245,11 @@ li.itemimage input{
 li.img-selected{
 	-moz-border-radius: 5px 5px 5px 5px;
 	background:none repeat scroll 0 0 #C1DCFC;
-	border:solid 1px #7DA2CE;	
+	border:solid 1px #7DA2CE;
 }
 
 li.img-selected input{
-	border:solid 1px #7DA2CE;		
+	border:solid 1px #7DA2CE;
 }
 
 div.imgdel{
@@ -295,23 +295,23 @@ div.rctop{
 }
 
 table#properties{
-	border-collapse: collapse;	
+	border-collapse: collapse;
 	font-size:12px;
 }
 
 table#variants{
-	border-collapse: collapse;	
+	border-collapse: collapse;
 	font-size:12px;
 }
 
 table#courses{
-	border-collapse: collapse;	
+	border-collapse: collapse;
 	font-size:12px;
 }
 
 table#courses input{
 	border:none;
-	width:40px;	
+	width:40px;
 }
 
 table#properties th,table#courses th,table#variants th,table.skladtable th,table.orders th,table.dodani th,table.usertable th,table.ctable th,table.dodanitable th, table.platbatable th{
@@ -326,7 +326,7 @@ table#variants td{
 
 table#properties input{
 	border:none;
-	width:128px;	
+	width:128px;
 }
 
 table#variants input{
@@ -434,7 +434,7 @@ div.window2 ul.menu,div.window2 div.subject{
 
 .plocha{ background:silver; width:100%; overflow:auto;}
 .window1{ position: absolute; width:355px; height: 520px; background: url('../images/window1.png')}
-.inner4{	
+.inner4{
 	position:absolute;
 	background:white;
 	left:12px;
@@ -609,7 +609,7 @@ th a{
 }
 
 .dodanitable td{
-	padding:0px;	
+	padding:0px;
 }
 
 .platbatable input.text{
@@ -624,5 +624,13 @@ th a{
 
 .poznamka{
 	font-size:10px;
+}
+
+.category-image{
+	position: relative;
+	top: -164px;
+	margin-bottom: -100px;
+	/*left: 0px;*/
+	border: solid 1px black;
 }
 

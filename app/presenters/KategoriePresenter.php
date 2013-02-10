@@ -4,7 +4,7 @@ class KategoriePresenter extends BasePresenter{
 
 	/** @persistent */
   public $id = 0;
-	
+
 	public function createComponentMultiFile()
 	{
 		$exts = array('jpg','jpeg','gif','png','bmp');
@@ -12,7 +12,7 @@ class KategoriePresenter extends BasePresenter{
 		$multifile->onAllSubmit[] = array($this,'multiFileAllSubmit');
 		return $multifile;
 	}
-	
+
 	public function multiFileAllSubmit($files)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -24,7 +24,7 @@ class KategoriePresenter extends BasePresenter{
 		$this->template->showItemDialog = 1;
 		$this->handleShowItemDialog($session->actualItem);
 	}
-  
+
 	public function createComponentMultiFile2()
 	{
 		$exts = array('jpg','jpeg','gif','png','bmp');
@@ -32,7 +32,7 @@ class KategoriePresenter extends BasePresenter{
 		$multifile->onAllSubmit[] = array($this,'multiFileAllSubmit2');
 		return $multifile;
 	}
-	
+
 	public function multiFileAllSubmit2($files)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -43,7 +43,7 @@ class KategoriePresenter extends BasePresenter{
 		}
 		$this->redirect('this');
 	}
-	
+
 	public function createComponentDodaniNForm()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -58,11 +58,11 @@ class KategoriePresenter extends BasePresenter{
 
 		$form['dph']->getControlPrototype()->onChange("$('#frm-dodaniNForm').ajaxSubmit()");
 		$form['dodani']->getControlPrototype()->onChange("$('#frm-dodaniNForm').ajaxSubmit()");
-		
+
 		$form->onSuccess[] = array($this,'dodaniNFormSubmited');
 		return $form;
 	}
-	
+
 	public function dodaniNFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -72,13 +72,13 @@ class KategoriePresenter extends BasePresenter{
 		$model->setDodani($session->actualItem,$values['dodani']);
 		die;
 	}
-	
+
 	public function createComponentDiscussion()
 	{
 		$discussion = new Discussion($this,'discussion',$this->lang);
 		return $discussion;
 	}
-	
+
 	public function createComponentPopisNForm()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -89,26 +89,26 @@ class KategoriePresenter extends BasePresenter{
 		$form->onSuccess[] = array($this,'popisNFormSubmited');
 		return $form;
 	}
-	
+
 	public function popisNFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$model->setPopis($form['popis']->getValue(),$session->actualItem,$this->lang);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentKomplementForm()
 	{
 		$session = NEnvironment::getSession('shop');
-		
+
 		$model = $this->getInstanceOf('KategorieModel');
 		$cats = $model->getAllCats($this->lang);
-		
+
 		if($session->actualCat)$cat = $session->actualCat;
 		else $cat = implode(',',array_keys($cats));
 		$model = $this->getInstanceOf('ProductModel');
-		
+
 		$items = $model->getItems($cat,$this->lang,'jmeno');
 
 		$form = new NAppForm($this,'komplementForm');
@@ -120,7 +120,7 @@ class KategoriePresenter extends BasePresenter{
 		$form['categ']->setDefaultValue($session->actualCat);
 		return $form;
 	}
-	
+
 	public function komplementFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -135,47 +135,47 @@ class KategoriePresenter extends BasePresenter{
 		}
 		$this->redirect('this');
 	}
-	
+
 	public function createComponentCompForm()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$items = $model->getComplements($session->actualItem,'comp',$this->lang);
-		$form = new NAppForm($this,'compForm');	
+		$form = new NAppForm($this,'compForm');
 		$form->addMultiSelect('items','Komplementy:',$items,10)->addRule(NForm::FILLED,'Musíte vybrat alespoň jednu položku.');
 		$form->addSubmit('del','Odebrat z komplementů');
 		$form->onSuccess[] = array($this,'compFormSubmited');
 		return $form;
 	}
-	
+
 	public function compFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$model->remFromComp($form['items']->getValue(),'comp',$session->actualItem);
-		$this->redirect('this');		
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentSupForm()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$items = $model->getComplements($session->actualItem,'supl',$this->lang);
-		$form = new NAppForm($this,'supForm');	
+		$form = new NAppForm($this,'supForm');
 		$form->addMultiSelect('items','Suplementy:',$items,9)->addRule(NForm::FILLED,'Musíte vybrat alespoň jednu položku.');
 		$form->addSubmit('del','Odebrat ze suplementů');
 		$form->onSuccess[] = array($this,'supFormSubmited');
 		return $form;
 	}
-	
+
 	public function supFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$model->remFromComp($form['items']->getValue(),'supl',$session->actualItem);
-		$this->redirect('this');		
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentSpecialForm1()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -186,9 +186,9 @@ class KategoriePresenter extends BasePresenter{
 			->addRule(~NForm::IS_IN,'Parametr s tímto názvem již existuje.',$model->getSpecials($session->actualItem,$this->lang));
 		$form->addSubmit('add','Přidat');
 		$form->onSuccess[] = array($this,'specialForm1Submited');
-		return $form;	
+		return $form;
 	}
-	
+
 	public function specialForm1Submited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -196,7 +196,7 @@ class KategoriePresenter extends BasePresenter{
 		$model->setNewSpecial($form['newSpecial']->getValue(),$session->actualItem,$this->lang);
 		$this->redirect('this');
 	}
-	
+
 	public function createComponentSpecialForm2()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -206,9 +206,9 @@ class KategoriePresenter extends BasePresenter{
 		$form['specials']->getControlPrototype()->onChange('$("#frm-specialForm2").ajaxSubmit()');
 		$form->addSubmit('del','Odebrat');
 		$form->onSuccess[] = array($this,'specialForm2Submited');
-		return $form;		
+		return $form;
 	}
-	
+
 	public function specialForm2Submited(NAppForm $form)
 	{
 		if($this->isAjax())
@@ -225,11 +225,11 @@ class KategoriePresenter extends BasePresenter{
 			$this->redirect('this');
 		}
 	}
-	
+
 	public function createComponentSpecialForm3()
 	{
 		$form = new NAppForm($this,'specialForm3');
-		$form->addSelect('typ','Typ:',array(1=>'Text 1 řádek',2=>'Text více řádků',3=>'Možnosti - 1 správná',4=>'Možnosti - více správných',5=>'Vložení souborů'));	
+		$form->addSelect('typ','Typ:',array(1=>'Text 1 řádek',2=>'Text více řádků',3=>'Možnosti - 1 správná',4=>'Možnosti - více správných',5=>'Vložení souborů'));
 		$form->addText('values','Hodnoty:')
 			->addConditionOn($form['typ'],NForm::IS_IN,array(3,4))
 			->addRule(NForm::FILLED,'Musíte vyplnit hodnoty.');
@@ -238,29 +238,29 @@ class KategoriePresenter extends BasePresenter{
 		$form->addText('od','Rozsah od:');
 		$form->addText('do','Rozsah do:');
 		$form->addHidden('id_spec')->addRule(NForm::FILLED,'Musíte vybrat nějaký parametr v tabulce vlevo.');
-		$form->addSubmit('ok','OK'); 
+		$form->addSubmit('ok','OK');
 		$form->onSuccess[] = array($this,'specialForm3Submited');
-		return $form;		
+		return $form;
 	}
-	
+
 	public function specialForm3Submited(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$model->setSpecial2($form->getValues());
 		$this->redirect('this');
 	}
-	
+
 	public function createComponentSpecialForm4()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$form = new NAppForm($this,'specialForm4');
 		$form->addTextArea('popis','Vysvětlující popis',40,6)->setDefaultValue($model->getSpecPopis($session->actualItem,$this->lang));
-		$form->addSubmit('ok','Uložit'); 
+		$form->addSubmit('ok','Uložit');
 		$form->onSuccess[] = array($this,'specialForm4Submited');
-		return $form;		
+		return $form;
 	}
-	
+
 	public function specialForm4Submited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -268,18 +268,18 @@ class KategoriePresenter extends BasePresenter{
 		$model->setSpecPopis($form['popis']->getValue(),$session->actualItem,$this->lang);
 		$this->redirect('this');
 	}
-	
+
 	public function createComponentSpecialForm5()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$form = new NAppForm($this,'specialForm5');
 		$form->addTextArea('condition','Cenové podmínky:',40,10)->setDefaultValue($model->getConditions($session->actualItem,$this->lang));
-		$form->addSubmit('ok','Uložit'); 
+		$form->addSubmit('ok','Uložit');
 		$form->onSuccess[] = array($this,'specialForm5Submited');
 		return $form;
 	}
-	
+
 	public function specialForm5Submited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -295,29 +295,31 @@ class KategoriePresenter extends BasePresenter{
 		elseif($err == 6)$form->addError('V podmínce chybí uvozovky u parametru, řádek '.$row);
 		else $this->redirect('this');
 	}
-	
+
 	public function createComponentCatTextForm()
 	{
 		$model = $this->getInstanceOf('KategorieModel');
-		
+
 		$form = new NAppForm($this,'catTextForm');
+		$form->addUpload('catimg', 'Ikona kategorie:');
 		$form->addTextArea('cattext','')->setDefaultValue($model->getText($this->id,$this->lang));
 		$form->onSuccess[] = array($this,'catTextFormSubmited');
 		return $form;
 	}
-	
+
 	public function catTextFormSubmited(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('KategorieModel');
+		$model->setImage($this->id,$form['catimg']->getValue());
 		$model->setText($this->id,$form['cattext']->getValue(),$this->lang);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function renderDefault()
 	{
 		$session = NEnvironment::getSession('shop');
 		if($session->bin)$status = 'del';
-		else $status = 'ok';	
+		else $status = 'ok';
 		$model1 = $this->getInstanceOf('KategorieModel');
 		$model2 = $this->getInstanceOf('ProductModel');
 		$this->template->folders = $model1->getCategories($this->id,$this->lang,'normal',$status);
@@ -326,21 +328,21 @@ class KategoriePresenter extends BasePresenter{
 		$this->template->owner = $model1->getCategory($this->id,$this->lang);
 		$this->template->status = $status;
 	}
-	
+
 	public function renderIframe2()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$this->template->properties = $model->getProperties($session->actualItem,$this->lang);
 	}
-	
+
 	public function renderIframe3()
 	{
 		$session = NEnvironment::getSession('shop');
 		$model = $this->getInstanceOf('ProductModel');
 		$this->template->variants = $model->getVariants($session->actualItem,$this->lang);
 	}
-	
+
 	public function renderIframe6()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -349,7 +351,7 @@ class KategoriePresenter extends BasePresenter{
 		$this->template->cena = $model->getDefaultPrice($session->actualItem);
 		$this->template->images = $model->getImages($session->actualItem,$this->lang,'specialni');
 	}
-	
+
 	public function handleMove($files,$owner)
 	{
 		$items = array();
@@ -379,12 +381,12 @@ class KategoriePresenter extends BasePresenter{
 		}
 		die;
 	}
-	
+
 	public function handleCopy($files)
 	{
 		$items = array();
 		$model = $this->getInstanceOf('ProductModel');
-		
+
 		$pole = explode('_',$files);
 		foreach($pole as $pol)
 		{
@@ -395,7 +397,7 @@ class KategoriePresenter extends BasePresenter{
 		$model->copyItems($items);
 		$this->redirect('this');
 	}
-	
+
 	public function handleDelete($files,$status = 'del')
 	{
 		$items = array();
@@ -403,7 +405,7 @@ class KategoriePresenter extends BasePresenter{
 		$model1 = $this->getInstanceOf('KategorieModel');
 		$model2 = $this->getInstanceOf('ProductModel');
 		$pole = explode('_',$files);
-		
+
 		foreach($pole as $pol)
 		{
 			$obj = explode('-',$pol);
@@ -428,27 +430,27 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('stat'=>0));
 		die;
 	}
-	
+
 	public function handleNewCat($type)
 	{
 		$model = $this->getInstanceOf('KategorieModel');
 		$model->newCat($this->id,$type);
 		$this->redirect('this');
 	}
-		
+
 	public function handleNewProd()
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$model->newProd($this->id);
 		$this->redirect('this');
 	}
-	
+
 	public function handleShowOtherItem($item,$type)
 	{
 		$model = $this->getInstanceOf('ProductModel');
-		$this->handleShowItemDialog($model->getOtherItem($item,$type));	
+		$this->handleShowItemDialog($model->getOtherItem($item,$type));
 	}
-	
+
 	public function handleShowItemDialog($item,$del=true,$tab=1)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -457,7 +459,7 @@ class KategoriePresenter extends BasePresenter{
 		$model = $this->getInstanceOf('ProductModel');
 		if($del){
 			$model->deleteEmptyProp($item);
-			$model->deleteEmptyVar($item);	
+			$model->deleteEmptyVar($item);
 		}
 		//Diskuze
 		$discuss = $this->getComponent('discussion');
@@ -471,13 +473,13 @@ class KategoriePresenter extends BasePresenter{
 		//Invalidace
 		$this->invalidateControl('itemDialog');
 	}
-	
+
 	public function handleShowText()
 	{
 		$this->template->showTextDialog = true;
 		$this->invalidateControl('textDialog');
 	}
-	
+
 	public function handleShowSort()
 	{
 		$model = $this->getInstanceOf('KategorieModel');
@@ -487,7 +489,7 @@ class KategoriePresenter extends BasePresenter{
 		$this->template->items = $model2->getItems($this->id,$this->lang);
 		$this->invalidateControl('sortDialog');
 	}
-	
+
 	public function handleSaveSort()
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -495,7 +497,7 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleSaveItemSort($type)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -504,14 +506,14 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleDeleteImage($img)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$model->deleteImage($img);
 		die(json_encode(array('status'=>0)));
 	}
-	
+
 	public function handleRenameImg($img)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -519,7 +521,7 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleAddRow()
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -527,7 +529,7 @@ class KategoriePresenter extends BasePresenter{
 		$model->addProp($session->actualItem);
 		$this->invalidateControl('table');
 	}
-	
+
 	public function handleAddVarRow()
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -535,7 +537,7 @@ class KategoriePresenter extends BasePresenter{
 		$model->addVariant($session->actualItem);
 		$this->invalidateControl('table');
 	}
-	
+
 	public function handleSetPropName($pid)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -543,7 +545,7 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleSetPropVal($pid)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -551,7 +553,7 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleSetVariant($pid)
 	{
 		$data = $_POST;
@@ -564,7 +566,7 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleNewVariant()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -575,7 +577,7 @@ class KategoriePresenter extends BasePresenter{
 		$model->newVariant($session->actualItem,$data);
 		$this->invalidateControl('table');
 	}
-	
+
 	public function handleShowCond($cond)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -583,7 +585,7 @@ class KategoriePresenter extends BasePresenter{
 		$this->template->spectype = $cond;
 		$this->invalidateControl('specialForm3');
 	}
-	
+
 	public function handleSetCena($cena)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -592,10 +594,10 @@ class KategoriePresenter extends BasePresenter{
 		echo json_encode(array('status'=>0));
 		die;
 	}
-	
+
 	public function handleToTheBasket()
 	{
-		$session = NEnvironment::getSession('shop');	
+		$session = NEnvironment::getSession('shop');
 		if($session->bin)$session->bin = false;
 		else $session->bin = true;
 		$this->redirect('this',array('id'=>0));
