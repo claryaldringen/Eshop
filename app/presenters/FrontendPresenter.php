@@ -2,22 +2,22 @@
 
 class FrontendPresenter extends BasePresenter
 {
-	
+
 	const addressEmptyValue = "Společnost\r\nJméno a příjmení\r\nUlice a čp.\r\nPSČ - Město";
-	
+
 	/** @persistent int */
 	public $mode;
 	public $product;
 	public $mena;
 	public $stat;
-	
+
 	public function startup()
 	{
 		parent::startup();
-		
+
 		$httpResponse = NEnvironment::getHttpResponse();
 		$httpResponse->setCookie('mercas','obsahkukinstejnenikdonecte',time()+24*3600);	// Ochrana proti spamu
-		
+
 		$user = NEnvironment::getUser();
 		if($user->isLoggedIn())
 		{
@@ -42,14 +42,14 @@ class FrontendPresenter extends BasePresenter
 		}
 		$this->template->mena = $this->mena;
 	}
-	
+
 	protected function createComponentRegistrationNForm(){
-		
+
 		$cnb = $this['cnb'];
 		$meny = $cnb->getAllCode();
 		$meny = array_combine($meny,$meny);
 		$model = $this->getInstanceOf('UserModel');
-		
+
 		$form = new NAppForm($this, 'registrationNForm');
 		$form->addHidden('id');
 		$form->addText('jmeno', '*Jméno:')->addRule(NForm::FILLED,'Vyplňte jméno!');
@@ -68,15 +68,15 @@ class FrontendPresenter extends BasePresenter
 		$form->addText('dic', 'DIČ:');
 		$form->addText('login', '*Uživatelské jméno:')
 			->addRule(NForm::FILLED,'Vyplňte login!');
-			
+
 		$form->addPassword('heslo', '*Heslo:')->getControlPrototype()->autocomplete('off');
 		$form->addPassword('heslo2', 'Heslo znovu:')
 			->addConditionOn($form['heslo'],NForm::FILLED)
 			->addRule(NForm::EQUAL, 'Hesla se musí shodovat!', $form['heslo']);
 		$form->addCheckbox('news','Zasílat novinky e-mailem')->setDefaultValue(TRUE);
-		
+
 		$form->onSuccess[]= array($this, 'processRegistration');
-		
+
 		if($this->user->isInRole('1'))
 		{
 			$form->setDefaults($model->getUser($this->userdata['id']));
@@ -86,10 +86,10 @@ class FrontendPresenter extends BasePresenter
 			$form['login']->addRule(~NForm::IS_IN,'Toto uživatelské jméno je již zabrané!',$model->getLogins());
 			$form['heslo']->addRule(NForm::FILLED, 'Vyplňte heslo!');
 		}
-		
+
 		return $form;
 	}
-	
+
 	public function processRegistration(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('UserModel');
@@ -99,16 +99,16 @@ class FrontendPresenter extends BasePresenter
 		{
 			$model->updateUser($values);
 			$this->flashMessage('Vaše údaje byly změněny.');
-			$this->redirect('this');	
+			$this->redirect('this');
 		}
-		
+
 		$stat = $model->setUser($values,$this);
 		if($stat == 1)$this->redirect('order');
 		elseif($stat == 2)$this->flashMessage('Vaše registrace byla úspěšně dokončena, nyní se můžete přihlásit.');
 		else $this->flashMessage('Na vaši e-mailovou adresu \''.$values['email'].'\' byl zaslán e-mail s dokončením registrace.');
 		$this->redirect('default');
 	}
-	
+
 	public function createComponentSortForm()
 	{
 		$sort = array('P.sort'=>'ničeho',
@@ -124,20 +124,20 @@ class FrontendPresenter extends BasePresenter
 		$form->onSuccess[] = array($this,'sortFormSubmited');
 		return $form;
 	}
-	
+
 	public function sortFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
 		$session->sort = $form['sort']->getValue();
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
  	public function createComponentHodnoceni()
  	{
  	  $hodnoceni = new RatingControl($this,'hodnoceni',$this->userdata['id'],$this->product->id);
  	  return $hodnoceni;
  	}
-		
+
  	public function createComponentDiscussion()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -145,13 +145,13 @@ class FrontendPresenter extends BasePresenter
 	  $discussion = new Discussion($this,'discussion',$this->lang);
 		return $discussion;
 	}
- 	
+
 	public function createComponentTree()
 	{
 	  $tree = new Tree($this,'tree', $this->lang);
 	  return $tree;
 	}
-	
+
 	public function createComponentForm($name)
 	{
 		$form = new NAppForm($this,$name);
@@ -166,7 +166,7 @@ class FrontendPresenter extends BasePresenter
 		$form->onSuccess[] = array($this,'addToBasket');
 		return $form;
 	}
-	
+
 	public function addToBasket(NAppForm $form)
 	{
 		$model1 = $this->getInstanceOf('UserModel');
@@ -177,16 +177,16 @@ class FrontendPresenter extends BasePresenter
 			$this->user->login($pole['username'],$pole['password']);
 		}
 		$model2->addToBasket($form['pocet']->getValue(),$form['id']->getValue(),$this->user->getIdentity()->data['id']);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentDetailNForm()
 	{
 		$form = new NAppForm($this,'detailNForm');
 		$form->onSuccess[] = array($this,'detailNFormSubmited');
 		return $form;
 	}
-	
+
 	public function createComponentInBasketNForm()
 	{
 		$form = new NAppForm($this,'inBasketNForm');
@@ -198,22 +198,22 @@ class FrontendPresenter extends BasePresenter
 		$form['toorder']->getControlPrototype()->class('kosikbutt');
 		return $form;
 	}
-	
+
 	public function saveClicked(NSubmitButton $button)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$form = $button->getForm();
 		$model->setBasket($this->user->getIdentity()->data['id'],$form->getValues());
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function deleteClicked(NSubmitButton $button)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$model->deleteBasket($this->user->getIdentity()->data['id']);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function toorderClicked(NSubmitButton $button)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -225,9 +225,9 @@ class FrontendPresenter extends BasePresenter
 			$session->toorder = true;
 			$this->redirect('registration');
 		}
-		else $this->redirect('order');	
+		else $this->redirect('order');
 	}
-	
+
 	public function createComponentForgottenPasswordForm()
 	{
 	  $form = new NAppForm($this,'forgottenPasswordForm');
@@ -237,55 +237,55 @@ class FrontendPresenter extends BasePresenter
 	  $form->onSuccess[] = array($this,'forgottenPasswordFormSubmited');
 	  return $form;
 	}
-	
+
 	public function forgottenPasswordFormSubmited(NAppForm $form)
 	{
 	  $model = $this->getInstanceOf('UserModel');
 	  $val = $form['nickoremail']->getValue();
-	  if($model->sendForgottenPassword($val,$this) == true)$this->redirect('passsend');  
+	  if($model->sendForgottenPassword($val,$this) == true)$this->redirect('passsend');
 	  else{
 	    $this->flashMessage("Uživatelské jméno nebo email '$val' nebyl nalezen, zkontrolujte prosím překlepy.");
 	    $this->redirect('this');
 	  }
 	}
-	
+
 	public function createComponentDodaniNForm()
 	{
 		$model = $this->getInstanceOf('PaymentModel');
 		$productModel = $this->getInstanceOf('ProductModel');
 		$userModel = $this->getInstanceOf('UserModel');
-			
+
 		$session = NEnvironment::getSession('shop');
 		$cena = $productModel->getBasket($this->user->getIdentity()->data['id']);
 		$poleDodani = $model->getAllDodani($this->lang,$this->stat);
 		if(isset($session->dodani))$aktualniDodani = $session->dodani;
 		else $aktualniDodani = key($poleDodani);
-			
+
 		$platby = $model->getPayments($aktualniDodani,$cena['cena'],$this->lang,$this->stat);
 		if(isset($session->platba) && in_array($session->platba, array_keys($platby)))$aktualniPlatba = $session->platba;
 		else $aktualniPlatba = key($platby);
-				
+
 		$form = new NAppForm($this,'dodaniNForm');
 		$form->addSelect('dadresa','',$userModel->getAddresses());
 		$form->addTextArea('newdadresa','',15,2)->setEmptyValue(self::addressEmptyValue);
 		$form->addSelect('fadresa','',$userModel->getAddresses());
 		$form->addTextArea('newfadresa','',15,2)->setEmptyValue(self::addressEmptyValue);
 		$form->addTextArea('pozn','Poznámka:',30,5);
-		
+
 		$form->addSelect('dodani','*Způsob dodání:',$poleDodani)
 			->getControlPrototype()->onChange("$('#".$form->getElementPrototype()->id."').ajaxSubmit();");
-		
+
 		$form->addSelect('platba','Způsob platby:',$platby)
 			->getControlPrototype()->onChange("$('#".$form->getElementPrototype()->id."').ajaxSubmit();");
-		
+
 		$form->addSubmit('order','Objednat')->getControlPrototype()->class('kosikbutt');
-		
+
 		$form['dodani']->setDefaultValue($aktualniDodani);
 		$form['platba']->setDefaultValue($aktualniPlatba);
-					
+
 		$form->onSuccess[] = array($this,'dodaniNFormSubmited');
 	}
-	
+
 	public function dodaniNFormSubmited(NAppForm $form)
 	{
 		$model2 = $this->getInstanceOf('ProductModel');
@@ -307,13 +307,13 @@ class FrontendPresenter extends BasePresenter
 					$platba = $model->getPayment($_POST['platba'],$this->stat);
 					$session->platba = $_POST['platba'];
 				}
-				else $platba = $model->getPayment(key($platby),$this->stat);	
-				
+				else $platba = $model->getPayment(key($platby),$this->stat);
+
 				if($cena['cena'] >= $dodani->zdarma_od)$this->template->balne = 0;
 				else $this->template->balne = $dodani->cena;
-				
+
 				if(isset($platba->cena))$this->template->balne += $platba->cena;
-				
+
 				$form['platba']->setItems($platby);
 			}
 			$this->invalidateControl('dodani');
@@ -331,7 +331,7 @@ class FrontendPresenter extends BasePresenter
 			$values['dodani_cena'] = $dodani->cena;
 			$values['platba_ncena'] = $platba->ncena;
 			$values['dodani_ncena'] = $dodani->ncena;
-			
+
 			$orderModel = $this->getInstanceOf('OrdersModel');
 			if($values['newdadresa'] == self::addressEmptyValue)unset($values['newdadresa']);
 			if($values['newfadresa'] == self::addressEmptyValue)unset($values['newfadresa']);
@@ -339,11 +339,11 @@ class FrontendPresenter extends BasePresenter
 			$this->redirect('orderend');
 		}
 	}
-	
+
 	public function createComponentCurrencyForm()
 	{
 		$codes = array('CZK','EUR','USD','GBP','PLN');
-		
+
 		$cnb = $this['cnb'];
 		$meny = array();
 		foreach($codes as $code)
@@ -351,7 +351,7 @@ class FrontendPresenter extends BasePresenter
 			$money = $cnb->getMoney($code);
 			$meny[$code] = $money['symbol'];
 		}
-		
+
 		$model = $this->getInstanceOf('PaymentModel');
 		$model2 = $this->getInstanceOf('ProductModel');
 		$cena = array('cena'=>0);
@@ -362,12 +362,12 @@ class FrontendPresenter extends BasePresenter
 			$poleDodani = $model->getAllDodani($this->lang,$this->stat);
 			if(isset($session->dodani))$aktualniDodani = $session->dodani;
 			else $aktualniDodani = key($poleDodani);
-			
+
 			$platby = $model->getPayments($aktualniDodani,$cena['cena'],$this->lang,$this->stat);
 			if(isset($session->platba) && in_array($session->platba, array_keys($platby)))$aktualniPlatba = $session->platba;
 			else $aktualniPlatba = key($platby);
 		}
-		
+
 		$form = new NAppForm($this,'currencyForm');
 		$form->addSelect('mena','Měna:',$meny)->setDefaultValue($this->mena);
 		$form['mena']->getControlPrototype()->onChange('submit()');
@@ -375,23 +375,23 @@ class FrontendPresenter extends BasePresenter
 		{
 			$form->addSelect('dodani','Způsob dodání:',$poleDodani)
 				->getControlPrototype()->onChange("$('#".$form->getElementPrototype()->id."').ajaxSubmit();");
-		
+
 			$form->addSelect('platba','Způsob platby:',$platby)
 				->getControlPrototype()->onChange("$('#".$form->getElementPrototype()->id."').ajaxSubmit();");
-		
+
 			$form['dodani']->setDefaultValue($aktualniDodani);
 			$form['platba']->setDefaultValue($aktualniPlatba);
 		}
 		$form->onSuccess[] = array($this,'currencyFormSubmited');
 		return $form;
 	}
-	
+
 	public function currencyFormSubmited(NAppForm $form)
 	{
 		$values = $form->getValues();
 		if($this->isAjax())
 		{
-			
+
 			$model = $this->getInstanceOf('PaymentModel');
 			$model2 = $this->getInstanceOf('ProductModel');
 			$cena = $model2->getBasket($this->user->getIdentity()->data['id']);
@@ -401,7 +401,7 @@ class FrontendPresenter extends BasePresenter
 			{
 				$session = NEnvironment::getSession('shop');
 				$session->dodani = $form['dodani']->getValue();
-				
+
 				$platby = $model->getPayments($form['dodani']->getValue(),$cena['cena'],$this->lang,$this->stat);
 				$dodani = $model->getDodani($form['dodani']->getValue(),$this->lang,ProductModel::getWeight($this->userdata['id']),$this->stat);
 
@@ -410,11 +410,11 @@ class FrontendPresenter extends BasePresenter
 					$platba = $model->getPayment($_POST['platba'],$this->stat);
 					$session->platba = $_POST['platba'];
 				}
-				else $platba = $model->getPayment(key($platby),$this->stat);	
-				
+				else $platba = $model->getPayment(key($platby),$this->stat);
+
 				if($cena['cena'] >= $dodani->zdarma_od)$this->template->balne = 0;
 				else $this->template->balne = $dodani->cena;
-				
+
 				if(isset($platba->cena))$this->template->balne += $platba->cena;
 				$form['platba']->setItems($platby);
 			}
@@ -430,10 +430,10 @@ class FrontendPresenter extends BasePresenter
 				$httpResponse = NEnvironment::getHttpResponse();
 				$httpResponse->setCookie('mercurr', $values['mena'], time() + 30 * 24 * 60 * 60);
 			}
-			$this->redirect('this');	
+			$this->redirect('this');
 		}
 	}
-	
+
 	public function createComponentKontaktForm()
 	{
 		$form = new NAppForm($this,'kontaktForm');
@@ -445,7 +445,7 @@ class FrontendPresenter extends BasePresenter
 		$form->onSuccess[] = array($this,'kontaktFormSubmited');
 		return $form;
 	}
-	
+
 	public function kontaktFormSubmited(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('MailModel');
@@ -453,17 +453,17 @@ class FrontendPresenter extends BasePresenter
 		$this->flashMessage('Váš vzkaz byl odeslán, budeme se snažit odpovědět co nejdříve.');
 		$this->redirect('this');
 	}
-	
+
 	/**
 	 * Vytvoreni formulare kam se zadavaji specialni vlastnosti
-	 * 
+	 *
 	 * @see NComponentContainer::createComponent()
 	 */
 	public function createComponentNForm($name,$id)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$form = new NAppForm($this,$name);
-		$form->addHidden('vlastnik')->setValue($id); 
+		$form->addHidden('vlastnik')->setValue($id);
 		$specials = $model->getSpecialsOnFrontend($id,$this->lang);
 		foreach($specials as $id=>$special)
 		{
@@ -489,7 +489,7 @@ class FrontendPresenter extends BasePresenter
 		$form->onSuccess[] = array($this,'specialFormSubmited');
 		return $form;
 	}
-	
+
 	public function specialFormSubmited(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -497,7 +497,7 @@ class FrontendPresenter extends BasePresenter
 		$values = $form->getValues();
 		$pocet = $values['pocet'];
 		unset($values['pocet']);
-		
+
 		try{
 			$id = $model->createSpecialVariant($values);
 			if(!$this->user->isLoggedIn())
@@ -511,7 +511,7 @@ class FrontendPresenter extends BasePresenter
 			$form->addError($e->getMessage());
 		}
 	}
-	
+
 	public function beforeRender()
 	{
 		parent::beforeRender();
@@ -523,7 +523,7 @@ class FrontendPresenter extends BasePresenter
 		$this->template->recomended = $model->getRecomended(5,$this->lang);
 		if($this->user->isLoggedIn())$this->template->basket = $model->getBasket($this->user->getIdentity()->data['id']);
 	  if(!isset($this->template->title))$this->template->title = "Repliky artefaktů pro oživenou historii a historický šerm";
-	  
+
 		try{
 	  	$this->setBalne();
 		}catch(InvalidArgumentException $e){
@@ -537,24 +537,24 @@ class FrontendPresenter extends BasePresenter
 					$this->redirect('kontakt');
 				}
 			}else NDebugger::log($e);
-		}		
+		}
 	}
-	
+
 	public function actionKategorie($path)
 	{
 		$session = NEnvironment::getSession('shop');
 		$tree = $this->getComponent('tree');
 		$tree->setPath($path);
-				 
+
 		$model1 = $this->getInstanceOf('KategorieModel');
 		$model2 = $this->getInstanceOf('ProductModel');
 		$id = $model1->getIdFromPath($path,$this->lang);
-	  
+
 		$vp = new VisualPaginator($this, 'vp');
 		$paginator = $vp->getPaginator();
     $paginator->itemsPerPage = 15;
     $paginator->itemCount = $model2->getProductCount($id,$this->lang);
-    	
+
     $this->template->path = $path;
 		$this->template->mkategorie = $model1->getCategory($id,$this->lang);
 		$this->template->title = $this->template->mkategorie->jmeno;
@@ -563,11 +563,11 @@ class FrontendPresenter extends BasePresenter
 		{
 			if($product->pocetVar == 1){
 				$products[$key]->form = $this->createComponentForm('form'.$key);
-				$products[$key]->form['id']->setValue($product->varianta);	
+				$products[$key]->form['id']->setValue($product->varianta);
 			}
 			$products[$key]->path = $model2->getProductCPath($product->id,$this->lang);
 		}
-		$this->template->products = $products; 
+		$this->template->products = $products;
 	}
 
 	public function actionDetail($path,$produkt)
@@ -575,14 +575,14 @@ class FrontendPresenter extends BasePresenter
 		$model = $this->getInstanceOf('ProductModel');
 		$id = $model->getProductFromPath($path,$produkt,$this->lang);
 		$spec = $model->getSpecials($id,$this->lang);
-		
+
 		$this->product = $model->getProduct($id,$this->lang);
 		$this->template->aktualfoto = key($this->product->images);
 		$this->template->suplements = $model->getSuplements($id,$this->lang,'supl');
 		$this->template->complements = $model->getSuplements($id,$this->lang,'comp');
 		if(!empty($spec))$this->template->specialForm = $this->createComponentNForm('specialForm',$id);
 	}
-	
+
 	public function actionBasket()
 	{
 		if($this->user->isLoggedIn())
@@ -601,13 +601,13 @@ class FrontendPresenter extends BasePresenter
 		$this->template->basketDetail = $products;
 		}else $this->redirect('default');
 	}
-	
+
 	public function actionObjednavky()
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$this->template->orders = $model->getUserOrders($this->lang,$this->user);
 	}
-	
+
 	public function actionSearch()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -619,37 +619,40 @@ class FrontendPresenter extends BasePresenter
 		{
 			if($product->pocetVar == 1){
 				$products[$key]->form = $this->createComponentForm('form'.$key);
-				$products[$key]->form['id']->setValue($product->varianta);	
+				$products[$key]->form['id']->setValue($product->varianta);
 			}
 			$products[$key]->path = $model->getProductCPath($product->id,$this->lang);
 		}
 		$this->template->products = $products;
 		}
 	}
-	
+
 	public function renderDefault()
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$model2 = $this->getInstanceOf('SettingsModel');
-		
+
 		$products = $model->getProductsInSleva($this->lang);
 		foreach($products as $key=>$product)
 		{
 			if($product->pocetVar == 1){
 				$products[$key]->form = $this->createComponentForm('form'.$key);
-				$products[$key]->form['id']->setValue($product->varianta);	
+				$products[$key]->form['id']->setValue($product->varianta);
 			}
 			$products[$key]->path = $model->getProductCPath($product->id,$this->lang);
 		}
-		$this->template->products = $products; 
+		$this->template->products = $products;
 		$this->template->text = $model2->getText($this->lang);
+
+		$settingsModel = $this->getInstanceOf('SettingsModel');
+		$this->template->pagetext = $settingsModel->getPageText(1, $settingsModel->getLangId($this->lang))->content;
 	}
-	
-	public function renderDetail($path,$produkt)
+
+	public function renderDetail($path, $produkt)
 	{
 		$tree = $this->getComponent('tree');
 		$tree->setPath($path);
-	  
+
 		$this->template->product = $this->product;
 		$title = '';
 		foreach($this->product->properties as $key=>$val)
@@ -670,7 +673,7 @@ class FrontendPresenter extends BasePresenter
 			$form['sub_'.$var->id]->getControlPrototype()->class('koupit');
 		}
 	}
-	
+
 	public function actionOrder()
 	{
 		if(!$this->user->isLoggedIn())
@@ -684,14 +687,14 @@ class FrontendPresenter extends BasePresenter
 		$poleDodani = $model->getAllDodani($this->lang,$this->stat);
 		$dodani = $dodani = $model->getDodani(key($poleDodani),$this->lang,ProductModel::getWeight($this->userdata['id']),$this->stat);
 		$platby = $model->getPayments(key($poleDodani),$cena['cena'],$this->lang,$this->stat);
-		$platba = $model->getPayment(key($platby),$this->stat);	
-		
+		$platba = $model->getPayment(key($platby),$this->stat);
+
 		if($cena['cena'] >= $dodani->zdarma_od)$this->template->balne = 0;
 		else $this->template->balne = $dodani->cena;
 
 		if(isset($platba->cena))$this->template->balne += $platba->cena;
 	}
-	
+
 	public function renderOrder()
 	{
 		$model = $this->getInstanceOf('ProductModel');
@@ -701,10 +704,10 @@ class FrontendPresenter extends BasePresenter
 			$this->flashMessage('Košík je prázdný');
 			$this->redirect('default');
 		}
-		$this->template->basketDetail = $products; 
+		$this->template->basketDetail = $products;
 		$this->template->userdata = $this->user->getIdentity()->getData();
 	}
-	
+
 	public function renderOrderend()
 	{
 		$session = NEnvironment::getSession('shop');
@@ -714,13 +717,23 @@ class FrontendPresenter extends BasePresenter
 		}
 		$this->template->orderid = $session->orderid;
 	}
-	
+
 	public function renderKontakt()
 	{
-			$httpRequest = NEnvironment::getHttpRequest();
-			if($httpRequest->getCookie('mercas') === 'obsahkukinstejnenikdonecte')$this->template->showSubmit = true;
+		$httpRequest = NEnvironment::getHttpRequest();
+		if($httpRequest->getCookie('mercas') === 'obsahkukinstejnenikdonecte')$this->template->showSubmit = true;
+		$settingsModel = $this->getInstanceOf('SettingsModel');
+		$this->template->pagetext = $settingsModel->getPageText(2, $settingsModel->getLangId($this->lang))->content;
 	}
-	
+
+
+	public function renderPodminky()
+	{
+		$settingsModel = $this->getInstanceOf('SettingsModel');
+		$this->template->pagetext = $settingsModel->getPageText(3, $settingsModel->getLangId($this->lang))->content;
+	}
+
+
 	public function detailNFormSubmited(NAppForm $form)
 	{
 		$model1 = $this->getInstanceOf('UserModel');
@@ -742,29 +755,29 @@ class FrontendPresenter extends BasePresenter
 		}
 		$this->redirect('this');
 	}
-	
+
 	public function handleRegister($id)
 	{
 		$model = $this->getInstanceOf('UserModel');
 		$model->endRegistration($id);
 		$this->flashMessage('Registrace byla úspěšně dokončena, nyní se můžete přihlásit.');
-		$this->redirect('default');	
+		$this->redirect('default');
 	}
-	
+
 	public function handleSetAktualFoto($id,$foto)
 	{
 		$this->template->aktualfoto = $foto;
 		if($this->isAjax())$this->invalidateControl();
 		else $this->redirect('this');
 	}
-	
+
 	public function handlePrevod($path)
 	{
 		$model = $this->getInstanceOf('KategorieModel');
 		$path = $model->getPathFromId($path,$this->lang);
 		$this->redirect('kategorie',array('path'=>$path));
 	}
-	
+
 	public function handleActivate($pass)
 	{
 	  $model = $this->getInstanceOf('UserModel');
@@ -772,15 +785,15 @@ class FrontendPresenter extends BasePresenter
 	  $this->flashMessage('Vaše nové heslo bylo aktivováno, nyní se můžete přihlásit.');
 	  $this->redirect('this');
 	}
-	
+
 	public function handleShowMore($path)
 	{
 		$model1 = $this->getInstanceOf('KategorieModel');
 		$id = $model1->getIdFromPath($path,$this->lang);
-		$this->template->mkategorie = $model1->getCategory($id,$this->lang,false);	
+		$this->template->mkategorie = $model1->getCategory($id,$this->lang,false);
 		$this->invalidateControl('popis');
 	}
-	
+
 	private function setBalne()
 	{
 	  $session = NEnvironment::getSession('shop');
@@ -792,14 +805,14 @@ class FrontendPresenter extends BasePresenter
 			$poleDodani = $model->getAllDodani($this->lang,$this->stat);
 			if(isset($session->dodani))$aktualniDodani = $session->dodani;
 			else $aktualniDodani = key($poleDodani);
-			
+
 			$platby = $model->getPayments($aktualniDodani,$cena['cena'],$this->lang,$this->stat);
 			if(isset($session->platba) && in_array($session->platba, array_keys($platby)))$aktualniPlatba = $session->platba;
 			else $aktualniPlatba = key($platby);
-			
+
 			$dodani = $model->getDodani($aktualniDodani,$this->lang,ProductModel::getWeight($this->userdata['id']),$this->stat);
-			$platba = $model->getPayment($aktualniPlatba,$this->stat);	
-		
+			$platba = $model->getPayment($aktualniPlatba,$this->stat);
+
 			if($cena['cena'] >= $dodani->zdarma_od)$this->template->balne = 0;
 			else $this->template->balne = $dodani->cena;
 

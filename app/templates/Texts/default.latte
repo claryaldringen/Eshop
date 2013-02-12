@@ -1,0 +1,29 @@
+{block content}
+<div style="float:left;padding: 5px;margin: 5px;">
+	<ul>
+	{foreach $langs as $lang}
+		<li><a href="{plink 'this', 'langId' => $lang->id}">{$lang->name}</a></li>
+	{/foreach}
+	</ul>
+	<ul>
+	{foreach $pages as $page}
+		<li><a href="{plink 'this', 'pageId' => $page->id}">{$page->name}</a></li>
+	{/foreach}
+	<ul>
+</div>
+<div style="float:left;">
+{form textForm}
+	{input text}
+{/form}
+</div>
+<script type="text/javascript">
+ 	CKEDITOR.replace( 'text' ,{
+		toolbar: 'MyToolbar',
+		height: '357',
+		width: '753',
+		filebrowserImageBrowseUrl : '../uploader/index.php',
+		resize_enabled: false
+	});
+</script>
+
+

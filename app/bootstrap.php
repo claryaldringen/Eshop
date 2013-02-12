@@ -47,7 +47,7 @@ $router[] = new NRoute('<action registrace|kosik|objednavka|dekujeme|objednavky|
 		'action' => 'default',
 ));
 
-$router[] = new NRoute('admin/<action>/<presenter kategorie|orders|payment|product|users|settings>.html',array(
+$router[] = new NRoute('admin/<action>/<presenter kategorie|orders|payment|product|users|settings|texts>.html',array(
 		'presenter' => 'kategorie',
 		'action' => 'default',
 ));
