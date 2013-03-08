@@ -39,7 +39,7 @@ common:
 		owner:
 			name: "Jan Adamčík"
 			street: "Ptice 10"
-			city: "p. Úhonice";
+			city: "p. Úhonice"
 			postcode: "252 18"
 			prefix: ""
 			account: "2700111675"
