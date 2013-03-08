@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,26 +12,24 @@
 
 
 
-
-
-
-
 /**
  * HttpRequest provides access scheme for request sent via HTTP.
  *
  * @author     David Grudl
  *
- * @property   NUrlScript $url
- * @property-read array $query
- * @property-read array $post
+ * @property-read NUrlScript $url
+ * @property-read mixed $query
+ * @property-read bool $post
  * @property-read array $files
  * @property-read array $cookies
  * @property-read string $method
  * @property-read array $headers
- * @property-read NUrl $referer
+ * @property-read NUrl|NULL $referer
+ * @property-read bool $secured
+ * @property-read bool $ajax
  * @property-read string $remoteAddress
  * @property-read string $remoteHost
- * @property-read bool $secured
+ * @package Nette\Http
  */
 class NHttpRequest extends NObject implements IHttpRequest
 {

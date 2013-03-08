@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,29 +12,32 @@
 
 
 
-
-
-
-
 /**
  * Templating engine Latte.
  *
  * @author     David Grudl
+ * @package Nette\Latte
  */
 class NLatteFilter extends NObject
 {
 	/** @var NParser */
-	public $parser;
+	private $parser;
+
+	/** @var NLatteCompiler */
+	private $compiler;
 
 
 
 	public function __construct()
 	{
 		$this->parser = new NParser;
-		NCoreMacros::install($this->parser);
-		$this->parser->addMacro('cache', new NCacheMacro($this->parser));
-		NUIMacros::install($this->parser);
-		NFormMacros::install($this->parser);
+		$this->compiler = new NLatteCompiler;
+		$this->compiler->defaultContentType = NLatteCompiler::CONTENT_XHTML;
+
+		NCoreMacros::install($this->compiler);
+		$this->compiler->addMacro('cache', new NCacheMacro($this->compiler));
+		NUIMacros::install($this->compiler);
+		NFormMacros::install($this->compiler);
 	}
 
 
@@ -46,9 +49,27 @@ class NLatteFilter extends NObject
 	 */
 	public function __invoke($s)
 	{
-		$this->parser->context = array(NParser::CONTEXT_TEXT);
-		$this->parser->setDelimiters('\\{(?![\\s\'"{}])', '\\}');
-		return $this->parser->parse($s);
+		return $this->compiler->compile($this->parser->parse($s));
+	}
+
+
+
+	/**
+	 * @return NParser
+	 */
+	public function getParser()
+	{
+		return $this->parser;
+	}
+
+
+
+	/**
+	 * @return NLatteCompiler
+	 */
+	public function getCompiler()
+	{
+		return $this->compiler;
 	}
 
 }

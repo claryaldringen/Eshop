@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,19 +12,17 @@
 
 
 
-
-
-
-
 /**
  * Default implementation of IIdentity.
  *
  * @author     David Grudl
  *
+ * @serializationVersion 1.0
+ *
  * @property   mixed $id
  * @property   array $roles
- *
- * @serializationVersion 1.0
+ * @property-read array $data
+ * @package Nette\Security
  */
 class NIdentity extends NFreezableObject implements IIdentity
 {

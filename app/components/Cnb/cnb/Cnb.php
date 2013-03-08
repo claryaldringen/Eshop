@@ -14,6 +14,8 @@ class Cnb extends NControl
      */
     static private $version =false;
 
+		private $tempdir;
+
     /**
      * key from array $this->rating
      */
@@ -169,9 +171,10 @@ class Cnb extends NControl
      * @param boolean set global vat
      * @return void
      */
-    public function __construct($webMoney=0, $globalVat=false)
+    public function __construct($tempdir, $webMoney=0, $globalVat=false)
     {
-        $this->setGlobalVat($globalVat);
+        $this->tempdir = $tempdir;
+				$this->setGlobalVat($globalVat);
         $this->actualClass  =Cnb::RATE_CLASS;
         $strTo =$this->strTo =self::strTo($this->fontSize);
         $this->defMoney =$strTo($this->defMoney);
@@ -399,8 +402,8 @@ class Cnb extends NControl
             $to     =$this->loadCurrency($to);
             $this->webMoney =$to;
         }
-				
-				
+
+
         if($from !== true)
         {
             $number =$this->change($number, $from, $to);
@@ -487,7 +490,7 @@ class Cnb extends NControl
      */
     protected function getTemp()
     {
-        return TEMP_DIR;
+        $this->tempdir;
     }
 
     /**
@@ -650,9 +653,9 @@ class Cnb extends NControl
                     $obj->getConstant('FROM1'), $obj->getConstant('CODE'), $obj->getConstant('TO'),);
 
         $list  ='<?php class '. $this->actualClass .' extends NonObject {static public $date=\''. $info[0] .'\';static public $id='. (int)$info[1] .';';
-				
-        $processed = array();  
-        
+
+        $processed = array();
+
         foreach($cnb as $value)
         {
             $row    =explode(self::PIPE, $value);
@@ -661,10 +664,10 @@ class Cnb extends NControl
                 continue;
             else
                 $row[2] =(double)$row[2];
-						
+
             if ( isset( $processed[$this->correctTry($row[3])] )) continue;   // TH FIX
             $processed[$this->correctTry($row[3])] = TRUE;                    // TH FIX
-                
+
             $numFormat  =$this->createFormat($row[3]);
             $correction =$row[4]/$row[2];
 
@@ -688,7 +691,7 @@ class Cnb extends NControl
 
             $list   .=');}';
         }
-        file_put_contents($file, $list.'}');
+        file_put_contents(dirname(__FILE__) . $file, $list.'}');
     }
 
     /**

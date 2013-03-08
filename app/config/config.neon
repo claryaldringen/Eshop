@@ -1,0 +1,79 @@
+#
+# SECURITY WARNING: it is CRITICAL that this file & directory are NOT accessible directly via a web browser!
+#
+# If you don't protect this directory from direct web access, anybody will be able to see your passwords.
+# http://nette.org/security-warning
+#
+common:
+	parameters:
+		local:
+			dev: "cs;CZK;203"
+			cz: "cs;CZK;203"
+			sk: "sk;EUR;703"
+			eu: "en;EUR;203"
+			uk: "en;GBP;826"
+		frontend:
+			showprices: 1
+			catshow: "description" #properties - vlastnosti, description - popis
+		google:
+			gakey: "UA-20217731-2"
+		mail:
+			frommail = "shop@mercatores.cz"
+			fromname = "Jan Adamčík"
+			bccmail = "shop@mercatores.cz"
+			adminmails = "shop@mercatores.cz,webmaster@mercatores.cz"
+			forgottenpassword = "Mercatores - zapomenuté heslo"
+			registrationend = "Mercatores - dokončení registrace"
+			diskuze = "Mercatores - upozornění na nový komentář u výrobku"
+		image:
+			miniwidth = 52
+			miniheight = 39
+			mediumwidth = 128
+			mediumheight = 96
+			largewidth = 800
+			largeheight = 600
+		registration:
+			emailconfirmation: 0
+		kategorie:
+			sort: "id DESC"
+		owner:
+			name: "Jan Adamčík"
+			street: "Ptice 10"
+			city: "p. Úhonice";
+			postcode: "252 18"
+			prefix: ""
+			account: "2700111675"
+			bank: "2010"
+		users:
+			columns: "login,jmeno,email,telefon,adresa,ico,dic"
+
+
+	php:
+		date.timezone: Europe/Prague
+		# zlib.output_compression: yes
+
+	nette:
+		application:
+			errorPresenter: Error
+
+		database:
+			dsn: 'mysql:host=localhost;dbname=test'
+			user:
+			password:
+
+		session:
+			expiration: 14 days
+
+
+	services:
+		authenticator: Authenticator
+		routerFactory: RouterFactory
+		router: @routerFactory::createRouter
+
+
+	factories:
+
+
+production < common:
+
+development < common:

@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Cache dummy storage.
  *
  * @author     David Grudl
+ * @package Nette\Caching\Storages
  */
 class NDevNullStorage extends NObject implements ICacheStorage
 {
@@ -36,13 +33,24 @@ class NDevNullStorage extends NObject implements ICacheStorage
 
 
 	/**
+	 * Prevents item reading and writing. Lock is released by write() or remove().
+	 * @param  string key
+	 * @return void
+	 */
+	public function lock($key)
+	{
+	}
+
+
+
+	/**
 	 * Writes item into the cache.
 	 * @param  string key
 	 * @param  mixed  data
 	 * @param  array  dependencies
 	 * @return void
 	 */
-	public function write($key, $data, array $dp)
+	public function write($key, $data, array $dependencies)
 	{
 	}
 
@@ -64,7 +72,7 @@ class NDevNullStorage extends NObject implements ICacheStorage
 	 * @param  array  conditions
 	 * @return void
 	 */
-	public function clean(array $conds)
+	public function clean(array $conditions)
 	{
 	}
 

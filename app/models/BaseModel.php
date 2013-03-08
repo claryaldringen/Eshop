@@ -6,7 +6,7 @@ abstract class BaseModel extends NObject{
 	public function __construct(NDiContainer $context)
 	{
 		$this->context = $context;
-		if(!dibi::isConnected())dibi::connect($this->context->params->database);
+		if(!dibi::isConnected())dibi::connect($this->context->params['database']);
 	}
 
 	protected function getInstanceOf($model)

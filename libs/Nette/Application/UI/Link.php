@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Application\UI
  */
-
-
-
-
 
 
 
@@ -22,6 +18,10 @@
  *
  * @author     David Grudl
  * @internal
+ *
+ * @property-read string $destination
+ * @property-read array $parameters
+ * @package Nette\Application\UI
  */
 class NLink extends NObject
 {
@@ -37,9 +37,6 @@ class NLink extends NObject
 
 	/**
 	 * Link specification.
-	 * @param  NPresenterComponent
-	 * @param  string
-	 * @param  array
 	 */
 	public function __construct(NPresenterComponent $component, $destination, array $params)
 	{
@@ -67,7 +64,7 @@ class NLink extends NObject
 	 * @param  mixed
 	 * @return NLink  provides a fluent interface
 	 */
-	public function setParam($key, $value)
+	public function setParameter($key, $value)
 	{
 		$this->params[$key] = $value;
 		return $this;
@@ -80,7 +77,7 @@ class NLink extends NObject
 	 * @param  string
 	 * @return mixed
 	 */
-	public function getParam($key)
+	public function getParameter($key)
 	{
 		return isset($this->params[$key]) ? $this->params[$key] : NULL;
 	}
@@ -91,7 +88,7 @@ class NLink extends NObject
 	 * Returns link parameters.
 	 * @return array
 	 */
-	public function getParams()
+	public function getParameters()
 	{
 		return $this->params;
 	}
@@ -105,10 +102,10 @@ class NLink extends NObject
 	public function __toString()
 	{
 		try {
-			return $this->component->link($this->destination, $this->params);
+			return (string) $this->component->link($this->destination, $this->params);
 
 		} catch (Exception $e) {
-			NDebugger::toStringException($e);
+			trigger_error("Exception in " . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
 		}
 	}
 

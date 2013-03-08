@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Nette Framework (version 2.0-dev released on 2011-06-03, http://nette.org)
+ * Nette Framework (version 2.0.9 released on 2013-03-06, http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004, 2013 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -27,16 +27,20 @@ error_reporting(E_ALL | E_STRICT);
 @set_magic_quotes_runtime(FALSE); // @ - deprecated since PHP 5.3.0
 iconv_set_encoding('internal_encoding', 'UTF-8');
 extension_loaded('mbstring') && mb_internal_encoding('UTF-8');
+umask(0);
 @header('X-Powered-By: Nette Framework'); // @ - headers may be sent
+@header('Content-Type: text/html; charset=utf-8'); // @ - headers may be sent
 
 
 
 /**
  * Load and configure Nette Framework.
  */
+
+empty($GLOBALS[0]) && $GLOBALS[0] = array();
 define('NETTE', TRUE);
 define('NETTE_DIR', dirname(__FILE__));
-define('NETTE_VERSION_ID', 20000); // v2.0.0
+define('NETTE_VERSION_ID', 20009); // v2.0.9
 define('NETTE_PACKAGE', 'PHP 5.2 prefixed');
 
 
@@ -50,28 +54,22 @@ require_once dirname(__FILE__) . '/Loaders/NetteLoader.php';
 
 NNetteLoader::getInstance()->register();
 
+require_once dirname(__FILE__) . '/Diagnostics/Helpers.php';
+require_once dirname(__FILE__) . '/Diagnostics/shortcuts.php';
+require_once dirname(__FILE__) . '/Utils/Html.php';
+NDebugger::_init();
+
 NSafeStream::register();
 
 
 
 /**
  * NCallback factory.
- * @param  mixed   class, object, function, callback
+ * @param  mixed   class, object, callable
  * @param  string  method
  * @return NCallback
  */
 function callback($callback, $m = NULL)
 {
-	return ($m === NULL && $callback instanceof NCallback) ? $callback : new NCallback($callback, $m);
-}
-
-
-
-/**
- * NDebugger::dump shortcut.
- */
-function dump($var)
-{
-	foreach (func_get_args() as $arg) NDebugger::dump($arg);
-	return $var;
+	return new NCallback($callback, $m);
 }

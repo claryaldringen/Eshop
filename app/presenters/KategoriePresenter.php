@@ -324,7 +324,7 @@ class KategoriePresenter extends BasePresenter{
 		$model2 = $this->getInstanceOf('ProductModel');
 		$this->template->folders = $model1->getCategories($this->id,$this->lang,'normal',$status);
 		$this->template->collections = $model1->getCategories(0,$this->lang,'collection');
-		$this->template->items = $model2->getAdminProducts($this->id,$this->lang,$status,$this->context->params->kategorie->sort);
+		$this->template->items = $model2->getAdminProducts($this->id,$this->lang,$status,$this->context->params['kategorie']['sort']);
 		$this->template->owner = $model1->getCategory($this->id,$this->lang);
 		$this->template->status = $status;
 	}

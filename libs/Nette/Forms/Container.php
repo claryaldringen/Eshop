@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,19 +12,18 @@
 
 
 
-
-
-
-
 /**
  * Container for form controls.
  *
  * @author     David Grudl
  *
+ * @property-write $defaults
+ * @property   NArrayHash $values
+ * @property-read bool $valid
+ * @property   NFormGroup $currentGroup
  * @property-read ArrayIterator $controls
  * @property-read NForm $form
- * @property-read bool $valid
- * @property   array $values
+ * @package Nette\Forms
  */
 class NFormContainer extends NComponentContainer implements ArrayAccess
 {
@@ -100,17 +99,18 @@ class NFormContainer extends NComponentContainer implements ArrayAccess
 
 	/**
 	 * Returns the values submitted by the form.
-	 * @return NArrayHash
+	 * @param  bool  return values as an array?
+	 * @return NArrayHash|array
 	 */
-	public function getValues()
+	public function getValues($asArray = FALSE)
 	{
-		$values = new NArrayHash;
+		$values = $asArray ? array() : new NArrayHash;
 		foreach ($this->getComponents() as $name => $control) {
 			if ($control instanceof IFormControl && !$control->isDisabled() && !$control instanceof ISubmitterControl) {
-				$values->$name = $control->getValue();
+				$values[$name] = $control->getValue();
 
 			} elseif ($control instanceof NFormContainer) {
-				$values->$name = $control->getValues();
+				$values[$name] = $control->getValues($asArray);
 			}
 		}
 		return $values;
@@ -143,12 +143,12 @@ class NFormContainer extends NComponentContainer implements ArrayAccess
 	public function validate()
 	{
 		$this->valid = TRUE;
-		$this->onValidate($this);
 		foreach ($this->getControls() as $control) {
 			if (!$control->getRules()->validate()) {
 				$this->valid = FALSE;
 			}
 		}
+		$this->onValidate($this);
 	}
 
 
@@ -158,7 +158,6 @@ class NFormContainer extends NComponentContainer implements ArrayAccess
 
 
 	/**
-	 * @param  NFormGroup
 	 * @return NFormContainer  provides a fluent interface
 	 */
 	public function setCurrentGroup(NFormGroup $group = NULL)
@@ -181,11 +180,11 @@ class NFormContainer extends NComponentContainer implements ArrayAccess
 
 
 	/**
-	 * Adds the specified component to the IComponentContainer.
+	 * Adds the specified component to the IContainer.
 	 * @param  IComponent
 	 * @param  string
 	 * @param  string
-	 * @return void
+	 * @return NFormContainer  provides a fluent interface
 	 * @throws InvalidStateException
 	 */
 	public function addComponent(IComponent $component, $name, $insertBefore = NULL)
@@ -194,6 +193,7 @@ class NFormContainer extends NComponentContainer implements ArrayAccess
 		if ($this->currentGroup !== NULL && $component instanceof IFormControl) {
 			$this->currentGroup->add($component);
 		}
+		return $this;
 	}
 
 

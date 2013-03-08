@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Converts a Form into the HTML output.
  *
  * @author     David Grudl
+ * @package Nette\Forms\Rendering
  */
 class NDefaultFormRenderer extends NObject implements IFormRenderer
 {
@@ -235,6 +232,9 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 				$s .= (string) $control->getControl();
 			}
 		}
+		if (iterator_count($this->form->getComponents(TRUE, 'NTextInput')) < 2) {
+			$s .= '<!--[if IE]><input type=IEbug disabled style="display:none"><![endif]-->';
+		}
 		if ($s) {
 			$s = $this->getWrapper('hidden container')->setHtml($s) . "\n";
 		}
@@ -246,7 +246,6 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 
 	/**
 	 * Renders validation errors (per form or per control).
-	 * @param  IFormControl
 	 * @return string
 	 */
 	public function renderErrors(IFormControl $control = NULL)
@@ -378,7 +377,6 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 
 	/**
 	 * Renders single visual row.
-	 * @param  IFormControl
 	 * @return string
 	 */
 	public function renderPair(IFormControl $control)
@@ -399,7 +397,7 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 
 	/**
 	 * Renders single visual row of multiple controls.
-	 * @param  array of IFormControl
+	 * @param  IFormControl[]
 	 * @return string
 	 */
 	public function renderPairMulti(array $controls)
@@ -421,7 +419,6 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 
 	/**
 	 * Renders 'label' part of visual row of controls.
-	 * @param  IFormControl
 	 * @return string
 	 */
 	public function renderLabel(IFormControl $control)
@@ -446,7 +443,6 @@ class NDefaultFormRenderer extends NObject implements IFormRenderer
 
 	/**
 	 * Renders 'control' part of visual row of controls.
-	 * @param  IFormControl
 	 * @return string
 	 */
 	public function renderControl(IFormControl $control)

@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,18 +12,17 @@
 
 
 
-
-
-
-
 /**
  * Micro presenter.
  *
  * @author     David Grudl
+ *
+ * @property-read IRequest $request
+ * @package NetteModule
  */
-class MicroPresenter extends NObject implements IPresenter
+class Nette_MicroPresenter extends NObject implements IPresenter
 {
-	/** @var IDiContainer */
+	/** @var NDIContainer */
 	private $context;
 
 	/** @var NPresenterRequest */
@@ -31,15 +30,32 @@ class MicroPresenter extends NObject implements IPresenter
 
 
 
+	public function __construct(NDIContainer $context)
+	{
+		$this->context = $context;
+	}
+
+
+
 	/**
-	 * @param  NPresenterRequest
+	 * Gets the context.
+	 * @return SystemContainer|NDIContainer
+	 */
+	final public function getContext()
+	{
+		return $this->context;
+	}
+
+
+
+	/**
 	 * @return IPresenterResponse
 	 */
 	public function run(NPresenterRequest $request)
 	{
 		$this->request = $request;
 
-		$httpRequest = $this->context->httpRequest;
+		$httpRequest = $this->context->getByType('IHttpRequest');
 		if (!$httpRequest->isAjax() && ($request->isMethod('get') || $request->isMethod('head'))) {
 			$refUrl = clone $httpRequest->getUrl();
 			$url = $this->context->router->constructUrl($request, $refUrl->setPath($refUrl->getScriptPath()));
@@ -48,23 +64,24 @@ class MicroPresenter extends NObject implements IPresenter
 			}
 		}
 
-		$params = $request->getParams();
+		$params = $request->getParameters();
 		if (!isset($params['callback'])) {
-			return;
+			throw new NBadRequestException("Parameter callback is missing.");
 		}
 		$params['presenter'] = $this;
-		$response = callback($params['callback'])->invokeNamedArgs($params);
+		$callback = new NCallback($params['callback']);
+		$response = $callback->invokeArgs(NPresenterComponentReflection::combineArgs($callback->toReflection(), $params));
 
 		if (is_string($response)) {
 			$response = array($response, array());
 		}
 		if (is_array($response)) {
-			if ($response instanceof SplFileInfo) {
+			if ($response[0] instanceof SplFileInfo) {
 				$response = $this->createTemplate('NFileTemplate')
-					->setParams($response[1])->setFile($response[0]);
+					->setParameters($response[1])->setFile($response[0]);
 			} else {
 				$response = $this->createTemplate('NTemplate')
-					->setParams($response[1])->setSource($response[0]);
+					->setParameters($response[1])->setSource($response[0]);
 			}
 		}
 		if ($response instanceof ITemplate) {
@@ -77,25 +94,25 @@ class MicroPresenter extends NObject implements IPresenter
 
 
 	/**
-	 * Template factory
+	 * Template factory.
 	 * @param  string
-	 * @param  callback
+	 * @param  callable
 	 * @return ITemplate
 	 */
 	public function createTemplate($class = NULL, $latteFactory = NULL)
 	{
 		$template = $class ? new $class : new NFileTemplate;
 
-		$template->setParams($this->request->getParams());
+		$template->setParameters($this->request->getParameters());
 		$template->presenter = $this;
 		$template->context = $context = $this->context;
-		$url = $context->httpRequest->getUrl();
+		$url = $context->getByType('IHttpRequest')->getUrl();
 		$template->baseUrl = rtrim($url->getBaseUrl(), '/');
 		$template->basePath = rtrim($url->getBasePath(), '/');
 
 		$template->registerHelperLoader('NTemplateHelpers::loader');
-		$template->setCacheStorage($context->templateCacheStorage);
-		$template->onPrepareFilters[] = create_function('$template', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('latteFactory'=>$latteFactory,'context'=> $context)).'], EXTR_REFS);
+		$template->setCacheStorage($context->nette->templateCacheStorage);
+		$template->onPrepareFilters[] = create_function('$template', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('latteFactory'=>$latteFactory,'context'=> $context)).'-1], EXTR_REFS);
 			$template->registerFilter($latteFactory ? $latteFactory() : new NLatteFilter);
 		');
 		return $template;
@@ -118,12 +135,12 @@ class MicroPresenter extends NObject implements IPresenter
 
 	/**
 	 * Throws HTTP error.
-	 * @param  int HTTP error code
 	 * @param  string
+	 * @param  int HTTP error code
 	 * @return void
 	 * @throws NBadRequestException
 	 */
-	public function error($code, $message = NULL)
+	public function error($message = NULL, $code = IHttpResponse::S404_NOT_FOUND)
 	{
 		throw new NBadRequestException($message, $code);
 	}
@@ -136,33 +153,6 @@ class MicroPresenter extends NObject implements IPresenter
 	public function getRequest()
 	{
 		return $this->request;
-	}
-
-
-
-	/********************* services ****************d*g**/
-
-
-
-	/**
-	 * Gets the context.
-	 * @return Presenter  provides a fluent interface
-	 */
-	public function setContext(IDiContainer $context)
-	{
-		$this->context = $context;
-		return $this;
-	}
-
-
-
-	/**
-	 * Gets the context.
-	 * @return IDiContainer
-	 */
-	final public function getContext()
-	{
-		return $this->context;
 	}
 
 }

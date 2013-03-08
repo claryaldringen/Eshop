@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,15 +12,17 @@
 
 
 
-
-
-
-
 /**
  * The bidirectional route is responsible for mapping
  * HTTP request to a Request object for dispatch and vice-versa.
  *
  * @author     David Grudl
+ *
+ * @property-read string $mask
+ * @property-read array $defaults
+ * @property-read int $flags
+ * @property-read string|FALSE $targetPresenter
+ * @package Nette\Application\Routers
  */
 class NRoute extends NObject implements IRouter
 {
@@ -41,13 +43,14 @@ class NRoute extends NObject implements IRouter
 	const FILTER_IN = 'filterIn';
 	const FILTER_OUT = 'filterOut';
 	const FILTER_TABLE = 'filterTable';
+	const FILTER_STRICT = 'filterStrict';
 
 	/** @internal fixity types - how to handle default value? {@link NRoute::$metadata} */
 	const OPTIONAL = 0,
 		PATH_OPTIONAL = 1,
 		CONSTANT = 2;
 
-	/** @var bool */
+	/** @var int */
 	public static $defaultFlags = 0;
 
 	/** @var array */
@@ -55,7 +58,7 @@ class NRoute extends NObject implements IRouter
 		'#' => array( // default style for path parameters
 			self::PATTERN => '[^/]+',
 			self::FILTER_IN => 'rawurldecode',
-			self::FILTER_OUT => 'rawurlencode',
+			self::FILTER_OUT => array(__CLASS__, 'param2path'),
 		),
 		'?#' => array( // default style for query parameters
 		),
@@ -119,7 +122,7 @@ class NRoute extends NObject implements IRouter
 			}
 			$metadata = array(
 				self::PRESENTER_KEY => substr($metadata, 0, $a),
-				'action' => $a === strlen($metadata) - 1 ? NPresenter::DEFAULT_ACTION : substr($metadata, $a + 1),
+				'action' => $a === strlen($metadata) - 1 ? NULL : substr($metadata, $a + 1),
 			);
 		} elseif ($metadata instanceof Closure || $metadata instanceof NCallback) {
 			$metadata = array(
@@ -136,7 +139,6 @@ class NRoute extends NObject implements IRouter
 
 	/**
 	 * Maps HTTP request to a Request object.
-	 * @param  IHttpRequest
 	 * @return NPresenterRequest|NULL
 	 */
 	public function match(IHttpRequest $httpRequest)
@@ -202,10 +204,13 @@ class NRoute extends NObject implements IRouter
 			if (isset($params[$name])) {
 				if (!is_scalar($params[$name])) {
 
-				} elseif (isset($meta[self::FILTER_TABLE][$params[$name]])) { // applyies filterTable only to scalar parameters
+				} elseif (isset($meta[self::FILTER_TABLE][$params[$name]])) { // applies filterTable only to scalar parameters
 					$params[$name] = $meta[self::FILTER_TABLE][$params[$name]];
 
-				} elseif (isset($meta[self::FILTER_IN])) { // applyies filterIn only to scalar parameters
+				} elseif (isset($meta[self::FILTER_TABLE]) && !empty($meta[self::FILTER_STRICT])) {
+					return NULL; // rejected by filterTable
+
+				} elseif (isset($meta[self::FILTER_IN])) { // applies filterIn only to scalar parameters
 					$params[$name] = call_user_func($meta[self::FILTER_IN], (string) $params[$name]);
 					if ($params[$name] === NULL && !isset($meta['fixity'])) {
 						return NULL; // rejected by filter
@@ -248,8 +253,6 @@ class NRoute extends NObject implements IRouter
 
 	/**
 	 * Constructs absolute URL from Request object.
-	 * @param  NPresenterRequest
-	 * @param  NUrl
 	 * @return string|NULL
 	 */
 	public function constructUrl(NPresenterRequest $appRequest, NUrl $refUrl)
@@ -258,7 +261,7 @@ class NRoute extends NObject implements IRouter
 			return NULL;
 		}
 
-		$params = $appRequest->getParams();
+		$params = $appRequest->getParameters();
 		$metadata = $this->metadata;
 
 		$presenter = $appRequest->getPresenterName();
@@ -285,6 +288,9 @@ class NRoute extends NObject implements IRouter
 			}
 
 			if (isset($meta['fixity'])) {
+				if ($params[$name] === FALSE) {
+					$params[$name] = '0';
+				}
 				if (is_scalar($params[$name]) ? strcasecmp($params[$name], $meta[self::VALUE]) === 0
 					: $params[$name] === $meta[self::VALUE]
 				) { // remove default values; NULL values are retain
@@ -301,6 +307,9 @@ class NRoute extends NObject implements IRouter
 			} elseif (isset($meta['filterTable2'][$params[$name]])) {
 				$params[$name] = $meta['filterTable2'][$params[$name]];
 
+			} elseif (isset($meta['filterTable2']) && !empty($meta[self::FILTER_STRICT])) {
+				return NULL;
+
 			} elseif (isset($meta[self::FILTER_OUT])) {
 				$params[$name] = call_user_func($meta[self::FILTER_OUT], $params[$name]);
 			}
@@ -313,7 +322,7 @@ class NRoute extends NObject implements IRouter
 		// compositing path
 		$sequence = $this->sequence;
 		$brackets = array();
-		$required = 0;
+		$required = NULL; // NULL for auto-optional
 		$url = '';
 		$i = count($sequence) - 1;
 		do {
@@ -347,7 +356,11 @@ class NRoute extends NObject implements IRouter
 				unset($params[$name]);
 
 			} elseif (isset($metadata[$name]['fixity'])) { // has default value?
-				$url = $metadata[$name]['defOut'] . $url;
+				if ($required === NULL && !$brackets) { // auto-optional
+					$url = '';
+				} else {
+					$url = $metadata[$name]['defOut'] . $url;
+				}
 
 			} else {
 				return NULL; // missing parameter '$name'
@@ -466,7 +479,7 @@ class NRoute extends NObject implements IRouter
 		$brackets = 0; // optional level
 		$re = '';
 		$sequence = array();
-		$autoOptional = array(0, 0); // strlen($re), count($sequence)
+		$autoOptional = TRUE;
 		do {
 			array_unshift($sequence, $parts[$i]);
 			$re = preg_quote($parts[$i], '#') . $re;
@@ -543,7 +556,7 @@ class NRoute extends NObject implements IRouter
 					$meta['defOut'] = $meta[self::VALUE];
 				}
 			}
-			$meta[self::PATTERN] = "#(?:$pattern)$#A" . ($this->flags & self::CASE_SENSITIVE ? '' : 'iu');
+			$meta[self::PATTERN] = "#(?:$pattern)\\z#A" . ($this->flags & self::CASE_SENSITIVE ? '' : 'iu');
 
 			// include in expression
 			$re = '(?P<' . str_replace('-', '___', $name) . '>(?U)' . $pattern . ')' . $re; // str_replace is dirty trick to enable '-' in parameter name
@@ -553,14 +566,15 @@ class NRoute extends NObject implements IRouter
 				}
 				$meta['fixity'] = self::PATH_OPTIONAL;
 
+			} elseif (!$autoOptional) {
+				unset($meta['fixity']);
+
 			} elseif (isset($meta['fixity'])) { // auto-optional
-				$re = '(?:' . substr_replace($re, ')?', strlen($re) - $autoOptional[0], 0);
-				array_splice($sequence, count($sequence) - $autoOptional[1], 0, array(']', ''));
-				array_unshift($sequence, '[', '');
+				$re = '(?:' . $re . ')?';
 				$meta['fixity'] = self::PATH_OPTIONAL;
 
 			} else {
-				$autoOptional = array(strlen($re), count($sequence));
+				$autoOptional = FALSE;
 			}
 
 			$metadata[$name] = $meta;
@@ -570,7 +584,7 @@ class NRoute extends NObject implements IRouter
 			throw new InvalidArgumentException("Missing closing ']' in mask '$mask'.");
 		}
 
-		$this->re = '#' . $re . '/?$#A' . ($this->flags & self::CASE_SENSITIVE ? '' : 'iu');
+		$this->re = '#' . $re . '/?\z#A' . ($this->flags & self::CASE_SENSITIVE ? '' : 'iu');
 		$this->metadata = $metadata;
 		$this->sequence = $sequence;
 	}
@@ -601,6 +615,17 @@ class NRoute extends NObject implements IRouter
 			}
 		}
 		return $defaults;
+	}
+
+
+
+	/**
+	 * Returns flags.
+	 * @return int
+	 */
+	public function getFlags()
+	{
+		return $this->flags;
 	}
 
 
@@ -730,6 +755,18 @@ class NRoute extends NObject implements IRouter
 		$s = str_replace('. ', ':', $s);
 		$s = str_replace('- ', '', $s);
 		return $s;
+	}
+
+
+
+	/**
+	 * Url encode.
+	 * @param  string
+	 * @return string
+	 */
+	private static function param2path($s)
+	{
+		return str_replace('%2F', '/', rawurlencode($s));
 	}
 
 

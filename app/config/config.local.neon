@@ -1,0 +1,14 @@
+parameters:
+	database:
+		host: "localhost"
+		username: "root"
+		password: ""
+		database: "eshop"
+		charset: "utf8"
+		profiler: true
+
+nette:
+
+services:
+
+factories:

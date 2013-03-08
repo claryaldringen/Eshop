@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * JSON encoder and decoder.
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 final class NJson
 {
@@ -52,16 +49,17 @@ final class NJson
 	 */
 	public static function encode($value)
 	{
-		NDebugger::tryError();
-		if (function_exists('ini_set')) {
+		if (function_exists('ini_set')) { // workaround for PHP bugs #52397, #54109, #63004
 			$old = ini_set('display_errors', 0); // needed to receive 'Invalid UTF-8 sequence' error
-			$json = json_encode($value);
-			ini_set('display_errors', $old);
-		} else {
-			$json = json_encode($value);
 		}
-		if (NDebugger::catchError($e)) { // needed to receive 'recursion detected' error
-			throw new NJsonException($e->getMessage());
+		set_error_handler(create_function('$severity, $message', ' // needed to receive \'recursion detected\' error
+			restore_error_handler();
+			throw new NJsonException($message);
+		'));
+		$json = json_encode($value);
+		restore_error_handler();
+		if (isset($old)) {
+			ini_set('display_errors', $old);
 		}
 		return $json;
 	}
@@ -91,6 +89,7 @@ final class NJson
 
 /**
  * The exception that indicates error of JSON encoding/decoding.
+ * @package Nette\Utils
  */
 class NJsonException extends Exception
 {

@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Latte\Macros
  */
-
-
-
-
 
 
 
@@ -26,12 +22,10 @@
  * - {status ...} HTTP status
  *
  * @author     David Grudl
+ * @package Nette\Latte\Macros
  */
 class NUIMacros extends NMacroSet
 {
-	/** @internal PHP identifier */
-	const RE_IDENTIFIER = '[_a-zA-Z\x7F-\xFF][_a-zA-Z0-9\x7F-\xFF]*';
-
 	/** @var array */
 	private $namedBlocks = array();
 
@@ -40,9 +34,9 @@ class NUIMacros extends NMacroSet
 
 
 
-	public static function install(NParser $parser)
+	public static function install(NLatteCompiler $compiler)
 	{
-		$me = new self($parser);
+		$me = new self($compiler);
 		$me->addMacro('include', array($me, 'macroInclude'));
 		$me->addMacro('includeblock', array($me, 'macroIncludeBlock'));
 		$me->addMacro('extends', array($me, 'macroExtends'));
@@ -52,10 +46,10 @@ class NUIMacros extends NMacroSet
 		$me->addMacro('snippet', array($me, 'macroBlock'), array($me, 'macroBlockEnd'));
 		$me->addMacro('ifset', array($me, 'macroIfset'), 'endif');
 
-		$me->addMacro('widget', array($me, 'macroControl'));
+		$me->addMacro('widget', array($me, 'macroControl')); // deprecated - use control
 		$me->addMacro('control', array($me, 'macroControl'));
 
-		$me->addMacro('@href', create_function('NMacroNode $node, $writer', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('me'=>$me)).'], EXTR_REFS);
+		$me->addMacro('href', NULL, NULL, create_function('NMacroNode $node, NPhpWriter $writer', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('me'=>$me)).'-1], EXTR_REFS);
 			return \' ?> href="<?php \' . $me->macroLink($node, $writer) . \' ?>"<?php \';
 		'));
 		$me->addMacro('plink', array($me, 'macroLink'));
@@ -63,7 +57,7 @@ class NUIMacros extends NMacroSet
 		$me->addMacro('ifCurrent', array($me, 'macroIfCurrent'), 'endif'); // deprecated; use n:class="$presenter->linkCurrent ? ..."
 
 		$me->addMacro('contentType', array($me, 'macroContentType'));
-		$me->addMacro('status', '$netteHttpResponse->setCode(%node.args)');
+		$me->addMacro('status', array($me, 'macroStatus'));
 	}
 
 
@@ -88,21 +82,21 @@ class NUIMacros extends NMacroSet
 	{
 		// try close last block
 		try {
-			$this->parser->writeMacro('/block');
-		} catch (NLatteException $e) {
+			$this->getCompiler()->writeMacro('/block');
+		} catch (NCompileException $e) {
 		}
 
 		$epilog = $prolog = array();
 
 		if ($this->namedBlocks) {
 			foreach ($this->namedBlocks as $name => $code) {
-				$func = '_lb' . substr(md5($this->parser->templateId . $name), 0, 10) . '_' . preg_replace('#[^a-z0-9_]#i', '_', $name);
+				$func = '_lb' . substr(md5($this->getCompiler()->getTemplateId() . $name), 0, 10) . '_' . preg_replace('#[^a-z0-9_]#i', '_', $name);
 				$snippet = $name[0] === '_';
 				$prolog[] = "//\n// block $name\n//\n"
 					. "if (!function_exists(\$_l->blocks[" . var_export($name, TRUE) . "][] = '$func')) { "
 					. "function $func(\$_l, \$_args) { "
 					. (PHP_VERSION_ID > 50208 ? 'extract($_args)' : 'foreach ($_args as $__k => $__v) $$__k = $__v') // PHP bug #46873
-					. ($snippet ? '; $control->validateControl(' . var_export(substr($name, 1), TRUE) . ')' : '')
+					. ($snippet ? '; $_control->validateControl(' . var_export(substr($name, 1), TRUE) . ')' : '')
 					. "\n?>$code<?php\n}}";
 			}
 			$prolog[] = "//\n// end of blocks\n//";
@@ -111,29 +105,22 @@ class NUIMacros extends NMacroSet
 		if ($this->namedBlocks || $this->extends) {
 			$prolog[] = "// template extending and snippets support";
 
-			if (is_bool($this->extends)) {
-				$prolog[] = '$_l->extends = ' . var_export($this->extends, TRUE) . '; unset($_extends, $template->_extends);';
-			} else {
-				$prolog[] = '$_l->extends = empty($template->_extends) ? FALSE : $template->_extends; unset($_extends, $template->_extends);';
-			}
+			$prolog[] = '$_l->extends = '
+				. ($this->extends ? $this->extends : 'empty($template->_extended) && isset($_control) && $_control instanceof NPresenter ? $_control->findLayoutTemplateFile() : NULL')
+				. '; $template->_extended = $_extended = TRUE;';
 
 			$prolog[] = '
 if ($_l->extends) {
-	ob_start();
-} elseif (!empty($control->snippetMode)) {
-	return NUIMacros::renderSnippets($control, $_l, get_defined_vars());
-}';
-			$epilog[] = '
-// template extending support
-if ($_l->extends) {
-	ob_end_clean();
-	NCoreMacros::includeTemplate($_l->extends, get_defined_vars(), $template)->render();
+	' . ($this->namedBlocks ? 'ob_start();' : 'return NCoreMacros::includeTemplate($_l->extends, get_defined_vars(), $template)->render();') . '
+
+} elseif (!empty($_control->snippetMode)) {
+	return NUIMacros::renderSnippets($_control, $_l, get_defined_vars());
 }';
 		} else {
 			$prolog[] = '
 // snippets support
-if (!empty($control->snippetMode)) {
-	return NUIMacros::renderSnippets($control, $_l, get_defined_vars());
+if (!empty($_control->snippetMode)) {
+	return NUIMacros::renderSnippets($_control, $_l, get_defined_vars());
 }';
 		}
 
@@ -149,7 +136,7 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {include #block}
 	 */
-	public function macroInclude(NMacroNode $node, $writer)
+	public function macroInclude(NMacroNode $node, NPhpWriter $writer)
 	{
 		$destination = $node->tokenizer->fetchWord(); // destination [,] [params]
 		if (substr($destination, 0, 1) !== '#') {
@@ -157,29 +144,24 @@ if (!empty($control->snippetMode)) {
 		}
 
 		$destination = ltrim($destination, '#');
-		if (!NStrings::match($destination, '#^\$?' . self::RE_IDENTIFIER . '$#')) {
-			throw new NLatteException("Included block name must be alphanumeric string, '$destination' given.");
-		}
-
 		$parent = $destination === 'parent';
 		if ($destination === 'parent' || $destination === 'this') {
-			$item = $node->parentNode;
-			while ($item && $item->name !== 'block' && !isset($item->data->name)) $item = $item->parentNode;
+			for ($item = $node->parentNode; $item && $item->name !== 'block' && !isset($item->data->name); $item = $item->parentNode);
 			if (!$item) {
-				throw new NLatteException("Cannot include $destination block outside of any block.");
+				throw new NCompileException("Cannot include $destination block outside of any block.");
 			}
 			$destination = $item->data->name;
 		}
 
-		$name = $destination[0] === '$' ? $destination : var_export($destination, TRUE);
+		$name = NStrings::contains($destination, '$') ? $destination : var_export($destination, TRUE);
 		if (isset($this->namedBlocks[$destination]) && !$parent) {
-			$cmd = "call_user_func(reset(\$_l->blocks[$name]), \$_l, %node.array? + \$template->getParams())";
+			$cmd = "call_user_func(reset(\$_l->blocks[$name]), \$_l, %node.array? + get_defined_vars())";
 		} else {
-			$cmd = 'NUIMacros::callBlock' . ($parent ? 'Parent' : '') . "(\$_l, $name, %node.array? + \$template->getParams())";
+			$cmd = 'NUIMacros::callBlock' . ($parent ? 'Parent' : '') . "(\$_l, $name, %node.array? + " . ($parent ? 'get_defined_vars' : '$template->getParameters') . '())';
 		}
 
 		if ($node->modifiers) {
-			return $writer->write("ob_start(); $cmd; echo %modify", 'ob_get_clean()');
+			return $writer->write("ob_start(); $cmd; echo %modify(ob_get_clean())");
 		} else {
 			return $writer->write($cmd);
 		}
@@ -190,10 +172,10 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {includeblock "file"}
 	 */
-	public function macroIncludeBlock(NMacroNode $node, $writer)
+	public function macroIncludeBlock(NMacroNode $node, NPhpWriter $writer)
 	{
 		return $writer->write('NCoreMacros::includeTemplate(%node.word, %node.array? + get_defined_vars(), $_l->templates[%var])->render()',
-			$this->parser->templateId);
+			$this->getCompiler()->getTemplateId());
 	}
 
 
@@ -201,19 +183,25 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {extends auto | none | $var | "file"}
 	 */
-	public function macroExtends(NMacroNode $node, $writer)
+	public function macroExtends(NMacroNode $node, NPhpWriter $writer)
 	{
 		if (!$node->args) {
-			throw new NLatteException("Missing destination in {extends}");
+			throw new NCompileException("Missing destination in {extends}");
 		}
 		if (!empty($node->parentNode)) {
-			throw new NLatteException("{extends} must be placed outside any macro.");
+			throw new NCompileException("{extends} must be placed outside any macro.");
 		}
 		if ($this->extends !== NULL) {
-			throw new NLatteException("Multiple {extends} declarations are not allowed.");
+			throw new NCompileException("Multiple {extends} declarations are not allowed.");
 		}
-		$this->extends = $node->args !== 'none';
-		return $this->extends ? '$_l->extends = ' . ($node->args === 'auto' ? '$layout' : $writer->formatArgs()) : '';
+		if ($node->args === 'none') {
+			$this->extends = 'FALSE';
+		} elseif ($node->args === 'auto') {
+			$this->extends = '$_presenter->findLayoutTemplateFile()';
+		} else {
+			$this->extends = $writer->write('%node.word%node.args');
+		}
+		return;
 	}
 
 
@@ -223,7 +211,7 @@ if (!empty($control->snippetMode)) {
 	 * {snippet [name [,]] [tag]}
 	 * {define [#]name}
 	 */
-	public function macroBlock(NMacroNode $node, $writer)
+	public function macroBlock(NMacroNode $node, NPhpWriter $writer)
 	{
 		$name = $node->tokenizer->fetchWord();
 
@@ -232,72 +220,76 @@ if (!empty($control->snippetMode)) {
 		}
 
 		$node->data->name = $name = ltrim($name, '#');
-		$node->data->end = '';
 		if ($name == NULL) {
 			if ($node->name !== 'snippet') {
-				throw new NLatteException("Missing block name.");
+				throw new NCompileException("Missing block name.");
 			}
 
-		} elseif (!NStrings::match($name, '#^' . self::RE_IDENTIFIER . '$#')) { // dynamic blok/snippet
+		} elseif (NStrings::contains($name, '$')) { // dynamic block/snippet
 			if ($node->name === 'snippet') {
-				$parent = $node->parentNode;
-				while ($parent && $parent->name !== 'snippet') $parent = $parent->parentNode;
+				for ($parent = $node->parentNode; $parent && $parent->name !== 'snippet'; $parent = $parent->parentNode);
 				if (!$parent) {
-					throw new NLatteException("Dynamic snippets are allowed only inside static snippet.");
+					throw new NCompileException("Dynamic snippets are allowed only inside static snippet.");
 				}
 				$parent->data->dynamic = TRUE;
+				$node->data->leave = TRUE;
+				$node->closingCode = "<?php \$_dynSnippets[\$_dynSnippetId] = ob_get_flush() ?>";
 
+				if ($node->htmlNode) {
+					$node->attrCode = $writer->write("<?php echo ' id=\"' . (\$_dynSnippetId = \$_control->getSnippetId({$writer->formatWord($name)})) . '\"' ?>");
+					return $writer->write('ob_start()');
+				}
 				$tag = trim($node->tokenizer->fetchWord(), '<>');
 				$tag = $tag ? $tag : 'div';
-				$node->data->leave = TRUE;
-				$node->data->end = "\$_dynSnippets[\$_dynSnippetId] = ob_get_flush() ?>\n</$tag><?php";
-				return $writer->write("?>\n<$tag id=\"<?php echo \$_dynSnippetId = \$control->getSnippetId({$writer->formatWord($name)}) ?>\"><?php ob_start()");
+				$node->closingCode .= "\n</$tag>";
+				return $writer->write("?>\n<$tag id=\"<?php echo \$_dynSnippetId = \$_control->getSnippetId({$writer->formatWord($name)}) ?>\"><?php ob_start()");
 
 			} else {
 				$node->data->leave = TRUE;
 				$fname = $writer->formatWord($name);
-				$node->data->end = "}} call_user_func(reset(\$_l->blocks[$fname]), \$_l, get_defined_vars())";
-				$func = '_lb' . substr(md5($this->parser->templateId . $name), 0, 10) . '_' . preg_replace('#[^a-z0-9_]#i', '_', $name);
-				return "//\n// block $name\n//\n"
-					. "if (!function_exists(\$_l->blocks[$fname][] = '$func')) { "
+				$node->closingCode = "<?php }} " . ($node->name === 'define' ? '' : "call_user_func(reset(\$_l->blocks[$fname]), \$_l, get_defined_vars())") . " ?>";
+				$func = '_lb' . substr(md5($this->getCompiler()->getTemplateId() . $name), 0, 10) . '_' . preg_replace('#[^a-z0-9_]#i', '_', $name);
+				return "\n\n//\n// block $name\n//\n"
+					. "if (!function_exists(\$_l->blocks[$fname]['{$this->getCompiler()->getTemplateId()}'] = '$func')) { "
 					. "function $func(\$_l, \$_args) { "
 					. (PHP_VERSION_ID > 50208 ? 'extract($_args)' : 'foreach ($_args as $__k => $__v) $$__k = $__v'); // PHP bug #46873
 			}
 		}
 
-		// static blok/snippet
+		// static block/snippet
 		if ($node->name === 'snippet') {
 			$node->data->name = $name = '_' . $name;
 		}
+
 		if (isset($this->namedBlocks[$name])) {
-			throw new NLatteException("Cannot redeclare static block '$name'");
+			throw new NCompileException("Cannot redeclare static block '$name'");
 		}
+
+		$prolog = $this->namedBlocks ? '' : "if (\$_l->extends) { ob_end_clean(); return NCoreMacros::includeTemplate(\$_l->extends, get_defined_vars(), \$template)->render(); }\n";
 		$top = empty($node->parentNode);
 		$this->namedBlocks[$name] = TRUE;
 
-		$include = 'call_user_func(reset($_l->blocks[%var]), $_l, ' . ($node->name === 'snippet' ? '$template->getParams()' : 'get_defined_vars()') . ')';
+		$include = 'call_user_func(reset($_l->blocks[%var]), $_l, ' . ($node->name === 'snippet' ? '$template->getParameters()' : 'get_defined_vars()') . ')';
 		if ($node->modifiers) {
-			$include = "ob_start(); $include; echo %modify";
+			$include = "ob_start(); $include; echo %modify(ob_get_clean())";
 		}
 
 		if ($node->name === 'snippet') {
+			if ($node->htmlNode) {
+				$node->attrCode = $writer->write('<?php echo \' id="\' . $_control->getSnippetId(%var) . \'"\' ?>', (string) substr($name, 1));
+				return $writer->write($prolog . $include, $name);
+			}
 			$tag = trim($node->tokenizer->fetchWord(), '<>');
 			$tag = $tag ? $tag : 'div';
-			return $writer->write("?>\n<$tag id=\"<?php echo \$control->getSnippetId(%var) ?>\"><?php $include ?>\n</$tag><?php ",
-				(string) substr($name, 1), $name, 'ob_get_clean()'
+			return $writer->write("$prolog ?>\n<$tag id=\"<?php echo \$_control->getSnippetId(%var) ?>\"><?php $include ?>\n</$tag><?php ",
+				(string) substr($name, 1), $name
 			);
 
 		} elseif ($node->name === 'define') {
-			return '';
-
-		} elseif (!$top) {
-			return $writer->write($include, $name, 'ob_get_clean()');
-
-		} elseif ($this->extends) {
-			return '';
+			return $prolog;
 
 		} else {
-			return $writer->write("if (!\$_l->extends) { $include; }", $name, 'ob_get_clean()');
+			return $writer->write($prolog . $include, $name);
 		}
 	}
 
@@ -308,20 +300,28 @@ if (!empty($control->snippetMode)) {
 	 * {/snippet}
 	 * {/define}
 	 */
-	public function macroBlockEnd(NMacroNode $node, $writer)
+	public function macroBlockEnd(NMacroNode $node, NPhpWriter $writer)
 	{
 		if (isset($node->data->name)) { // block, snippet, define
+			if ($node->name === 'snippet' && $node->htmlNode && !$node->prefix // n:snippet -> n:inner-snippet
+				&& preg_match('#^.*? n:\w+>\n?#s', $node->content, $m1) && preg_match('#[ \t]*<[^<]+\z#s', $node->content, $m2))
+			{
+				$node->openingCode = $m1[0] . $node->openingCode;
+				$node->content = substr($node->content, strlen($m1[0]), -strlen($m2[0]));
+				$node->closingCode .= $m2[0];
+			}
+
 			if (empty($node->data->leave)) {
 				if (!empty($node->data->dynamic)) {
 					$node->content .= '<?php if (isset($_dynSnippets)) return $_dynSnippets; ?>';
 				}
-				$this->namedBlocks[$node->data->name] = $node->content;
-				$node->content = '';
+				$this->namedBlocks[$node->data->name] = $tmp = rtrim(ltrim($node->content, "\n"), " \t");
+				$node->content = substr_replace($node->content, $node->openingCode . "\n", strspn($node->content, "\n"), strlen($tmp));
+				$node->openingCode = "<?php ?>";
 			}
-			return $node->data->end;
 
 		} elseif ($node->modifiers) { // anonymous block with modifier
-			return $writer->write('echo %modify', 'ob_get_clean()');
+			return $writer->write('echo %modify(ob_get_clean())');
 		}
 	}
 
@@ -330,9 +330,9 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {ifset #block}
 	 */
-	public function macroIfset(NMacroNode $node, $writer)
+	public function macroIfset(NMacroNode $node, NPhpWriter $writer)
 	{
-		if (strpos($node->args, '#') === FALSE) {
+		if (!NStrings::contains($node->args, '#')) {
 			return FALSE;
 		}
 		$list = array();
@@ -347,23 +347,23 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {control name[:method] [params]}
 	 */
-	public function macroControl(NMacroNode $node, $writer)
+	public function macroControl(NMacroNode $node, NPhpWriter $writer)
 	{
 		$pair = $node->tokenizer->fetchWord();
 		if ($pair === FALSE) {
-			throw new NLatteException("Missing control name in {control}");
+			throw new NCompileException("Missing control name in {control}");
 		}
 		$pair = explode(':', $pair, 2);
 		$name = $writer->formatWord($pair[0]);
 		$method = isset($pair[1]) ? ucfirst($pair[1]) : '';
-		$method = NStrings::match($method, '#^(' . self::RE_IDENTIFIER . '|)$#') ? "render$method" : "{\"render$method\"}";
+		$method = NStrings::match($method, '#^\w*\z#') ? "render$method" : "{\"render$method\"}";
 		$param = $writer->formatArray();
-		if (strpos($node->args, '=>') === FALSE) {
+		if (!NStrings::contains($node->args, '=>')) {
 			$param = substr($param, 6, -1); // removes array()
 		}
 		return ($name[0] === '$' ? "if (is_object($name)) \$_ctrl = $name; else " : '')
-			. '$_ctrl = $control->getWidget(' . $name . '); '
-			. 'if ($_ctrl instanceof IPartiallyRenderable) $_ctrl->validateControl(); '
+			. '$_ctrl = $_control->getComponent(' . $name . '); '
+			. 'if ($_ctrl instanceof IRenderable) $_ctrl->validateControl(); '
 			. "\$_ctrl->$method($param)";
 	}
 
@@ -374,9 +374,9 @@ if (!empty($control->snippetMode)) {
 	 * {plink destination [,] [params]}
 	 * n:href="destination [,] [params]"
 	 */
-	public function macroLink(NMacroNode $node, $writer)
+	public function macroLink(NMacroNode $node, NPhpWriter $writer)
 	{
-		return $writer->write('echo %escape(' . ($node->name === 'plink' ? '$presenter' : '$control') . '->link(%node.word, %node.array?))');
+		return $writer->write('echo %escape(%modify(' . ($node->name === 'plink' ? '$_presenter' : '$_control') . '->link(%node.word, %node.array?)))');
 	}
 
 
@@ -384,10 +384,10 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {ifCurrent destination [,] [params]}
 	 */
-	public function macroIfCurrent(NMacroNode $node, $writer)
+	public function macroIfCurrent(NMacroNode $node, NPhpWriter $writer)
 	{
-		return $writer->write(($node->args ? 'try { $presenter->link(%node.word, %node.array?); } catch (NInvalidLinkException $e) {}' : '')
-			. '; if ($presenter->getLastCreatedRequestFlag("current")):');
+		return $writer->write(($node->args ? 'try { $_presenter->link(%node.word, %node.array?); } catch (NInvalidLinkException $e) {}' : '')
+			. '; if ($_presenter->getLastCreatedRequestFlag("current")):');
 	}
 
 
@@ -395,31 +395,46 @@ if (!empty($control->snippetMode)) {
 	/**
 	 * {contentType ...}
 	 */
-	public function macroContentType(NMacroNode $node, $writer)
+	public function macroContentType(NMacroNode $node, NPhpWriter $writer)
 	{
-		if (strpos($node->args, 'html') !== FALSE) {
-			$this->parser->context = array(NParser::CONTEXT_TEXT);
+		if (NStrings::contains($node->args, 'xhtml')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_XHTML);
 
-		} elseif (strpos($node->args, 'xml') !== FALSE) {
-			$this->parser->context = array(NParser::CONTEXT_NONE, 'xml');
+		} elseif (NStrings::contains($node->args, 'html')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_HTML);
 
-		} elseif (strpos($node->args, 'javascript') !== FALSE) {
-			$this->parser->context = array(NParser::CONTEXT_NONE, 'js');
+		} elseif (NStrings::contains($node->args, 'xml')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_XML);
 
-		} elseif (strpos($node->args, 'css') !== FALSE) {
-			$this->parser->context = array(NParser::CONTEXT_NONE, 'css');
+		} elseif (NStrings::contains($node->args, 'javascript')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_JS);
 
-		} elseif (strpos($node->args, 'plain') !== FALSE) {
-			$this->parser->context = array(NParser::CONTEXT_NONE, 'text');
+		} elseif (NStrings::contains($node->args, 'css')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_CSS);
+
+		} elseif (NStrings::contains($node->args, 'calendar')) {
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_ICAL);
 
 		} else {
-			$this->parser->context = array(NParser::CONTEXT_NONE);
+			$this->getCompiler()->setContentType(NLatteCompiler::CONTENT_TEXT);
 		}
 
 		// temporary solution
-		if (strpos($node->args, '/')) {
-			return $writer->write('$netteHttpResponse->setHeader("Content-Type", %node.word)');
+		if (NStrings::contains($node->args, '/')) {
+			return $writer->write('$netteHttpResponse->setHeader("Content-Type", %var)', $node->args);
 		}
+	}
+
+
+
+	/**
+	 * {status ...}
+	 */
+	public function macroStatus(NMacroNode $node, NPhpWriter $writer)
+	{
+		return $writer->write((substr($node->args, -1) === '?' ? 'if (!$netteHttpResponse->isSent()) ' : '') .
+			'$netteHttpResponse->setCode(%var)', (int) $node->args
+		);
 	}
 
 
@@ -430,12 +445,9 @@ if (!empty($control->snippetMode)) {
 
 	/**
 	 * Calls block.
-	 * @param  stdClass
-	 * @param  string
-	 * @param  array
 	 * @return void
 	 */
-	public static function callBlock($context, $name, $params)
+	public static function callBlock(stdClass $context, $name, array $params)
 	{
 		if (empty($context->blocks[$name])) {
 			throw new InvalidStateException("Cannot include undefined block '$name'.");
@@ -448,12 +460,9 @@ if (!empty($control->snippetMode)) {
 
 	/**
 	 * Calls parent block.
-	 * @param  stdClass
-	 * @param  string
-	 * @param  array
 	 * @return void
 	 */
-	public static function callBlockParent($context, $name, $params)
+	public static function callBlockParent(stdClass $context, $name, array $params)
 	{
 		if (empty($context->blocks[$name]) || ($block = next($context->blocks[$name])) === FALSE) {
 			throw new InvalidStateException("Cannot include undefined parent block '$name'.");
@@ -463,7 +472,7 @@ if (!empty($control->snippetMode)) {
 
 
 
-	public static function renderSnippets($control, $local, $params)
+	public static function renderSnippets(NControl $control, stdClass $local, array $params)
 	{
 		$control->snippetMode = FALSE;
 		$payload = $control->getPresenter()->getPayload();
@@ -479,17 +488,25 @@ if (!empty($control->snippetMode)) {
 				if ($snippets) {
 					$payload->snippets += $snippets;
 					unset($payload->snippets[$id]);
-			}
-		}
-		}
-		if ($control instanceof NControl) {
-			foreach ($control->getComponents(FALSE, 'NControl') as $child) {
-				if ($child->isControlInvalid()) {
-					$child->snippetMode = TRUE;
-					$child->render();
-					$child->snippetMode = FALSE;
 				}
 			}
+		}
+		$control->snippetMode = TRUE;
+		if ($control instanceof IRenderable) {
+			$queue = array($control);
+			do {
+				foreach (array_shift($queue)->getComponents() as $child) {
+					if ($child instanceof IRenderable) {
+						if ($child->isControlInvalid()) {
+							$child->snippetMode = TRUE;
+							$child->render();
+							$child->snippetMode = FALSE;
+						}
+					} elseif ($child instanceof IComponentContainer) {
+						$queue[] = $child;
+					}
+				}
+			} while ($queue);
 		}
 	}
 

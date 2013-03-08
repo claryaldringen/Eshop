@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,15 +12,12 @@
 
 
 
-
-
-
-
 /**
  * Annotations support for PHP.
  *
  * @author     David Grudl
  * @Annotation
+ * @package Nette\Reflection
  */
 final class NAnnotationsParser
 {
@@ -28,7 +25,7 @@ final class NAnnotationsParser
 	const RE_STRING = '\'(?:\\\\.|[^\'\\\\])*\'|"(?:\\\\.|[^"\\\\])*"';
 
 	/** @internal identifier */
-	const RE_IDENTIFIER = '[_a-zA-Z\x7F-\xFF][_a-zA-Z0-9\x7F-\xFF-]*';
+	const RE_IDENTIFIER = '[_a-zA-Z\x7F-\xFF][_a-zA-Z0-9\x7F-\xFF-\\\]*';
 
 	/** @var bool */
 	public static $useReflection;
@@ -183,6 +180,7 @@ final class NAnnotationsParser
 				) {
 					$value = substr($value, strlen($m[0]));
 					list(, $key, $val) = $m;
+					$val = rtrim($val);
 					if ($val[0] === "'" || $val[0] === '"') {
 						$val = substr($val, 1, -1);
 
@@ -336,7 +334,6 @@ final class NAnnotationsParser
 
 
 	/**
-	 * @param  ICacheStorage
 	 * @return void
 	 */
 	public static function setCacheStorage(ICacheStorage $storage)

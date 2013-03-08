@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,19 +12,44 @@
 
 
 
-
-
-
-
 /**
  * Reports information about a class.
  *
  * @author     David Grudl
+ * @property-read NMethodReflection $constructor
+ * @property-read NExtensionReflection $extension
+ * @property-read NClassReflection[] $interfaces
+ * @property-read NMethodReflection[] $methods
+ * @property-read NClassReflection $parentClass
+ * @property-read NPropertyReflection[] $properties
+ * @property-read IAnnotation[][] $annotations
+ * @property-read string $description
+ * @property-read string $name
+ * @property-read bool $internal
+ * @property-read bool $userDefined
+ * @property-read bool $instantiable
+ * @property-read string $fileName
+ * @property-read int $startLine
+ * @property-read int $endLine
+ * @property-read string $docComment
+ * @property-read mixed[] $constants
+ * @property-read string[] $interfaceNames
+ * @property-read bool $interface
+ * @property-read bool $abstract
+ * @property-read bool $final
+ * @property-read int $modifiers
+ * @property-read array $staticProperties
+ * @property-read array $defaultProperties
+ * @property-read bool $iterateable
+ * @property-read string $extensionName
+ * @property-read string $namespaceName
+ * @property-read string $shortName
+ * @package Nette\Reflection
  */
 class NClassReflection extends ReflectionClass
 {
 
-	/** @var array (method => array(type => callback)) */
+	/** @var array (method => array(type => callable)) */
 	private static $extMethods;
 
 
@@ -64,13 +89,13 @@ class NClassReflection extends ReflectionClass
 	/**
 	 * Adds a method to class.
 	 * @param  string  method name
-	 * @param  mixed   callback or closure
+	 * @param  mixed   callable
 	 * @return NClassReflection  provides a fluent interface
 	 */
 	public function setExtensionMethod($name, $callback)
 	{
 		$l = & self::$extMethods[strtolower($name)];
-		$l[strtolower($this->getName())] = callback($callback);
+		$l[strtolower($this->getName())] = new NCallback($callback);
 		$l[''] = NULL;
 		return $this;
 	}
@@ -89,7 +114,7 @@ class NClassReflection extends ReflectionClass
 			foreach ($list['user'] as $fce) {
 				$pair = explode('_prototype_', $fce);
 				if (count($pair) === 2) {
-					self::$extMethods[$pair[1]][$pair[0]] = callback($fce);
+					self::$extMethods[$pair[1]][$pair[0]] = new NCallback($fce);
 					self::$extMethods[$pair[1]][''] = NULL;
 				}
 			}
@@ -126,12 +151,23 @@ class NClassReflection extends ReflectionClass
 
 
 
+	/**
+	 * @param  string
+	 * @return bool
+	 */
+	public function is($type)
+	{
+		return $this->isSubclassOf($type) || strcasecmp($this->getName(), ltrim($type, '\\')) === 0;
+	}
+
+
+
 	/********************* Reflection layer ****************d*g**/
 
 
 
 	/**
-	 * @return NMethodReflection
+	 * @return NMethodReflection|NULL
 	 */
 	public function getConstructor()
 	{
@@ -141,7 +177,7 @@ class NClassReflection extends ReflectionClass
 
 
 	/**
-	 * @return NExtensionReflection
+	 * @return NExtensionReflection|NULL
 	 */
 	public function getExtension()
 	{
@@ -150,6 +186,9 @@ class NClassReflection extends ReflectionClass
 
 
 
+	/**
+	 * @return NClassReflection[]
+	 */
 	public function getInterfaces()
 	{
 		$res = array();
@@ -171,6 +210,9 @@ class NClassReflection extends ReflectionClass
 
 
 
+	/**
+	 * @return NMethodReflection[]
+	 */
 	public function getMethods($filter = -1)
 	{
 		foreach ($res = parent::getMethods($filter) as $key => $val) {
@@ -182,7 +224,7 @@ class NClassReflection extends ReflectionClass
 
 
 	/**
-	 * @return NClassReflection
+	 * @return NClassReflection|NULL
 	 */
 	public function getParentClass()
 	{
@@ -191,6 +233,9 @@ class NClassReflection extends ReflectionClass
 
 
 
+	/**
+	 * @return NPropertyReflection[]
+	 */
 	public function getProperties($filter = -1)
 	{
 		foreach ($res = parent::getProperties($filter) as $key => $val) {
@@ -243,7 +288,7 @@ class NClassReflection extends ReflectionClass
 
 	/**
 	 * Returns all annotations.
-	 * @return array
+	 * @return IAnnotation[][]
 	 */
 	public function getAnnotations()
 	{

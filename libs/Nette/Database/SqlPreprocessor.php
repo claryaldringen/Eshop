@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * SQL preprocessor.
  *
  * @author     David Grudl
+ * @package Nette\Database
  */
 class NSqlPreprocessor extends NObject
 {
@@ -61,16 +58,9 @@ class NSqlPreprocessor extends NObject
 		$this->params = $params;
 		$this->counter = 0;
 		$this->remaining = array();
+		$this->arrayMode = 'assoc';
 
-		$cmd = strtoupper(substr(ltrim($sql), 0, 6)); // detect array mode
-		$this->arrayMode = $cmd === 'INSERT' || $cmd === 'REPLAC' ? 'values' : 'assoc';
-
-		/*~
-			\'.*?\'|".*?"|   ## string
-			:[a-zA-Z0-9_]+:| ## :substitution:
-			\?               ## placeholder
-		~xs*/
-		$sql = NStrings::replace($sql, '~\'.*?\'|".*?"|:[a-zA-Z0-9_]+:|\?~s', array($this, 'callback'));
+		$sql = NStrings::replace($sql, '~\'.*?\'|".*?"|\?|\b(?:INSERT|REPLACE|UPDATE)\b~si', array($this, 'callback'));
 
 		while ($this->counter < count($params)) {
 			$sql .= ' ' . $this->formatValue($params[$this->counter++]);
@@ -88,12 +78,12 @@ class NSqlPreprocessor extends NObject
 		if ($m[0] === "'" || $m[0] === '"') { // string
 			return $m;
 
-		} elseif ($m[0] === '?') { // placeholder
+		} elseif ($m === '?') { // placeholder
 			return $this->formatValue($this->params[$this->counter++]);
 
-		} elseif ($m[0] === ':') { // substitution
-			$s = substr($m, 1, -1);
-			return isset($this->connection->substitutions[$s]) ? $this->connection->substitutions[$s] : $m;
+		} else { // INSERT, REPLACE, UPDATE
+			$this->arrayMode = strtoupper($m) === 'UPDATE' ? 'assoc' : 'values';
+			return $m;
 		}
 	}
 
@@ -117,11 +107,13 @@ class NSqlPreprocessor extends NObject
 			return rtrim(rtrim(number_format($value, 10, '.', ''), '0'), '.');
 
 		} elseif (is_bool($value)) {
-			$this->remaining[] = $value;
-			return '?';
+			return $this->driver->formatBool($value);
 
 		} elseif ($value === NULL) {
 			return 'NULL';
+
+		} elseif ($value instanceof NTableRow) {
+			return $value->getPrimary();
 
 		} elseif (is_array($value) || $value instanceof Traversable) {
 			$vx = $kx = array();
@@ -150,14 +142,14 @@ class NSqlPreprocessor extends NObject
 				foreach ($value as $k => $v) {
 					$vx[] = $this->formatValue($v);
 				}
-				return ', (' . implode(', ', $vx) . ')';
+				return '(' . implode(', ', $vx) . ')';
 			}
 
 		} elseif ($value instanceof DateTime) {
 			return $this->driver->formatDateTime($value);
 
 		} elseif ($value instanceof NSqlLiteral) {
-			return $value->value;
+			return $value->__toString();
 
 		} else {
 			$this->remaining[] = $value;

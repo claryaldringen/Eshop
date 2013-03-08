@@ -161,7 +161,6 @@ class NValidators extends NObject
 
 	/**
 	 * Finds whether a value is an integer.
-	 * @param  mixed
 	 * @return bool
 	 */
 	public static function isNumericInt($value)
@@ -173,7 +172,6 @@ class NValidators extends NObject
 
 	/**
 	 * Finds whether a string is a floating point number in decimal base.
-	 * @param  mixed
 	 * @return bool
 	 */
 	public static function isNumeric($value)
@@ -185,7 +183,6 @@ class NValidators extends NObject
 
 	/**
 	 * Finds whether a value is a syntactically correct callback.
-	 * @param  mixed
 	 * @return bool
 	 */
 	public static function isCallable($value)
@@ -209,7 +206,6 @@ class NValidators extends NObject
 
 	/**
 	 * Finds whether a value is "falsy".
-	 * @param  mixed
 	 * @return bool
 	 */
 	public static function isNone($value)

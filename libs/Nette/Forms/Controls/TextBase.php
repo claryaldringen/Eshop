@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Forms\Controls
  */
-
-
-
-
 
 
 
@@ -22,6 +18,7 @@
  * @author     David Grudl
  *
  * @property   string $emptyValue
+ * @package Nette\Forms\Controls
  */
 abstract class NTextBase extends NFormControl
 {
@@ -40,7 +37,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public function setValue($value)
 	{
-		$this->value = is_scalar($value) ? (string) $value : '';
+		$this->value = is_array($value) ? '' : (string) $value;
 		return $this;
 	}
 
@@ -87,12 +84,12 @@ abstract class NTextBase extends NFormControl
 
 	/**
 	 * Appends input string filter callback.
-	 * @param  callback
+	 * @param  callable
 	 * @return NTextBase  provides a fluent interface
 	 */
 	public function addFilter($filter)
 	{
-		$this->filters[] = callback($filter);
+		$this->filters[] = new NCallback($filter);
 		return $this;
 	}
 
@@ -119,7 +116,7 @@ abstract class NTextBase extends NFormControl
 	public function addRule($operation, $message = NULL, $arg = NULL)
 	{
 		if ($operation === NForm::FLOAT) {
-			$this->addFilter(callback(__CLASS__, 'filterFloat'));
+			$this->addFilter(array(__CLASS__, 'filterFloat'));
 		}
 		return parent::addRule($operation, $message, $arg);
 	}
@@ -163,8 +160,7 @@ abstract class NTextBase extends NFormControl
 		if (!is_array($range)) {
 			$range = array($range, $range);
 		}
-		$len = NStrings::length($control->getValue());
-		return ($range[0] === NULL || $len >= $range[0]) && ($range[1] === NULL || $len <= $range[1]);
+		return NValidators::isInRange(NStrings::length($control->getValue()), $range);
 	}
 
 
@@ -176,11 +172,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validateEmail(NTextBase $control)
 	{
-		$atom = "[-a-z0-9!#$%&'*+/=?^_`{|}~]"; // RFC 5322 unquoted characters in local-part
-		$localPart = "(?:\"(?:[ !\\x23-\\x5B\\x5D-\\x7E]*|\\\\[ -~])+\"|$atom+(?:\\.$atom+)*)"; // quoted or unquoted
-		$chars = "a-z0-9\x80-\xFF"; // superset of IDN
-		$domain = "[$chars](?:[-$chars]{0,61}[$chars])"; // RFC 1034 one domain component
-		return (bool) NStrings::match($control->getValue(), "(^$localPart@(?:$domain?\\.)+[-$chars]{2,19}\\z)i");
+		return NValidators::isEmail($control->getValue());
 	}
 
 
@@ -192,11 +184,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validateUrl(NTextBase $control)
 	{
-		$chars = "a-z0-9\x80-\xFF";
-		return (bool) NStrings::match(
-			$control->getValue(),
-			"#^(?:https?://|)(?:[$chars](?:[-$chars]{0,61}[$chars])?\\.)+[-$chars]{2,19}(/\S*)?$#i"
-		);
+		return NValidators::isUrl($control->getValue()) || NValidators::isUrl('http://' . $control->getValue());
 	}
 
 
@@ -217,7 +205,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validatePattern(NTextBase $control, $pattern)
 	{
-		return (bool) NStrings::match($control->getValue(), "\x01^($pattern)$\x01u");
+		return (bool) NStrings::match($control->getValue(), "\x01^($pattern)\\z\x01u");
 	}
 
 
@@ -229,7 +217,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validateInteger(NTextBase $control)
 	{
-		return (bool) NStrings::match($control->getValue(), '/^-?[0-9]+$/');
+		return NValidators::isNumericInt($control->getValue());
 	}
 
 
@@ -241,7 +229,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validateFloat(NTextBase $control)
 	{
-		return (bool) NStrings::match($control->getValue(), '/^-?[0-9]*[.,]?[0-9]+$/');
+		return NValidators::isNumeric(self::filterFloat($control->getValue()));
 	}
 
 
@@ -254,8 +242,7 @@ abstract class NTextBase extends NFormControl
 	 */
 	public static function validateRange(NTextBase $control, $range)
 	{
-		return ($range[0] === NULL || $control->getValue() >= $range[0])
-			&& ($range[1] === NULL || $control->getValue() <= $range[1]);
+		return NValidators::isInRange($control->getValue(), $range);
 	}
 
 

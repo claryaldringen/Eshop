@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
- * Macro tokenizer.
+ * Macro tag tokenizer.
  *
  * @author     David Grudl
+ * @package Nette\Latte
  */
 class NMacroTokenizer extends NTokenizer
 {
@@ -41,11 +38,11 @@ class NMacroTokenizer extends NTokenizer
 			self::T_WHITESPACE => '\s+',
 			self::T_COMMENT => '(?s)/\*.*?\*/',
 			self::T_STRING => NParser::RE_STRING,
-			self::T_KEYWORD => '(?:true|false|null|and|or|xor|clone|new|instanceof|return|continue|break|[A-Z_][A-Z0-9_]{2,})(?![\d\pL_])', // keyword or const
-			self::T_CAST => '\([a-z]+\)', // type casting
-			self::T_VARIABLE => '\$[\d\pL_]+',
+			self::T_KEYWORD => '(?:true|false|null|and|or|xor|clone|new|instanceof|return|continue|break|[A-Z_][A-Z0-9_]{2,})(?![\w\pL_])', // keyword or const
+			self::T_CAST => '\((?:expand|string|array|int|integer|float|bool|boolean|object)\)', // type casting
+			self::T_VARIABLE => '\$[\w\pL_]+',
 			self::T_NUMBER => '[+-]?[0-9]+(?:\.[0-9]+)?(?:e[0-9]+)?',
-			self::T_SYMBOL => '[\d\pL_]+(?:-[\d\pL_]+)*',
+			self::T_SYMBOL => '[\w\pL_]+(?:-[\w\pL_]+)*',
 			self::T_CHAR => '::|=>|[^"\']', // =>, any char except quotes
 		), 'u');
 		$this->ignored = array(self::T_COMMENT, self::T_WHITESPACE);

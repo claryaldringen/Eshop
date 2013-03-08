@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Text box and browse button that allow users to select a file to upload to the server.
  *
  * @author     David Grudl
+ * @package Nette\Forms\Controls
  */
 class NUploadControl extends NFormControl
 {
@@ -126,7 +123,6 @@ class NUploadControl extends NFormControl
 
 	/**
 	 * Image validator: is file image?
-	 * @param  NUploadControl
 	 * @return bool
 	 */
 	public static function validateImage(NUploadControl $control)

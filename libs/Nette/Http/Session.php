@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,22 +12,27 @@
 
 
 
-
-
-
-
 /**
  * Provides access to session sections as well as session settings and management methods.
  *
  * @author     David Grudl
+ *
+ * @property-read bool $started
+ * @property-read string $id
+ * @property   string $name
+ * @property-read ArrayIterator $iterator
+ * @property   array $options
+ * @property-write $savePath
+ * @property-write ISessionStorage $storage
+ * @package Nette\Http
  */
 class NSession extends NObject
 {
 	/** Default file lifetime is 3 hours */
 	const DEFAULT_FILE_LIFETIME = 10800;
 
-	/** @var bool  is required session ID regeneration? */
-	private $regenerationNeeded;
+	/** @var bool  has been session ID regenerated? */
+	private $regenerated;
 
 	/** @var bool  has been session started? */
 	private static $started;
@@ -80,28 +85,33 @@ class NSession extends NObject
 	{
 		if (self::$started) {
 			return;
-
-		} elseif (self::$started === NULL && defined('SID')) {
-			throw new InvalidStateException('A session had already been started by session.auto_start or session_start().');
 		}
 
 		$this->configure($this->options);
 
-		NDebugger::tryError();
+		$id = & $_COOKIE[session_name()];
+		if (!is_string($id) || !preg_match('#^[0-9a-zA-Z,-]{22,128}\z#i', $id)) {
+			unset($_COOKIE[session_name()]);
+		}
+
+		set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('error'=>& $error)).'-1], EXTR_REFS); // session_start returns FALSE on failure since PHP 5.3.0.
+			if (($severity & error_reporting()) === $severity) {
+				$error = $message;
+				restore_error_handler();
+			}
+		'));
 		session_start();
-		if (NDebugger::catchError($e)) {
+		$this->response->removeDuplicateCookies();
+		restore_error_handler();
+		if ($error && !session_id()) {
 			@session_write_close(); // this is needed
-			throw new InvalidStateException('session_start(): ' . $e->getMessage(), 0, $e);
+			throw new InvalidStateException("session_start(): $error");
 		}
 
 		self::$started = TRUE;
-		if ($this->regenerationNeeded) {
-			session_regenerate_id(TRUE);
-			$this->regenerationNeeded = FALSE;
-		}
 
 		/* structure:
-			__NF: Counter, BrowserKey, Data, Meta
+			__NF: Counter, BrowserKey, Data, Meta, Time
 				DATA: section->variable = data
 				META: section->variable = Timestamp, Browser, Version
 		*/
@@ -110,10 +120,12 @@ class NSession extends NObject
 
 		// initialize structures
 		$nf = & $_SESSION['__NF'];
-		if (empty($nf)) { // new session
-			$nf = array('C' => 0);
-		} else {
-			$nf['C']++;
+		@$nf['C']++;
+
+		// regenerate empty session
+		if (empty($nf['Time'])) {
+			$nf['Time'] = time();
+			$this->regenerated = TRUE;
 		}
 
 		// browser closing detection
@@ -135,8 +147,8 @@ class NSession extends NObject
 				if (is_array($metadata)) {
 					foreach ($metadata as $variable => $value) {
 						if ((!empty($value['B']) && $browserClosed) || (!empty($value['T']) && $now > $value['T']) // whenBrowserIsClosed || Time
-							|| ($variable !== '' && is_object($nf['DATA'][$section][$variable]) && (isset($value['V']) ? $value['V'] : NULL) // Version
-								!== NClassReflection::from($nf['DATA'][$section][$variable])->getAnnotation('serializationVersion'))
+							|| (isset($nf['DATA'][$section][$variable]) && is_object($nf['DATA'][$section][$variable]) && (isset($value['V']) ? $value['V'] : NULL) // Version
+								!= NClassReflection::from($nf['DATA'][$section][$variable])->getAnnotation('serializationVersion')) // intentionally !=
 						) {
 							if ($variable === '') { // expire whole section
 								unset($nf['META'][$section], $nf['DATA'][$section]);
@@ -147,6 +159,11 @@ class NSession extends NObject
 					}
 				}
 			}
+		}
+
+		if ($this->regenerated) {
+			$this->regenerated = FALSE;
+			$this->regenerateId();
 		}
 
 		register_shutdown_function(array($this, 'clean'));
@@ -207,7 +224,7 @@ class NSession extends NObject
 	 */
 	public function exists()
 	{
-		return self::$started || $this->request->getCookie(session_name()) !== NULL;
+		return self::$started || $this->request->getCookie($this->getName()) !== NULL;
 	}
 
 
@@ -219,15 +236,18 @@ class NSession extends NObject
 	 */
 	public function regenerateId()
 	{
-		if (self::$started) {
+		if (self::$started && !$this->regenerated) {
 			if (headers_sent($file, $line)) {
 				throw new InvalidStateException("Cannot regenerate session ID after HTTP headers have been sent" . ($file ? " (output started at $file:$line)." : "."));
 			}
 			session_regenerate_id(TRUE);
-
-		} else {
-			$this->regenerationNeeded = TRUE;
+			session_write_close();
+			$backup = $_SESSION;
+			session_start();
+			$_SESSION = $backup;
+			$this->response->removeDuplicateCookies();
 		}
+		$this->regenerated = TRUE;
 	}
 
 
@@ -250,7 +270,7 @@ class NSession extends NObject
 	 */
 	public function setName($name)
 	{
-		if (!is_string($name) || !preg_match('#[^0-9.][^.]*$#A', $name)) {
+		if (!is_string($name) || !preg_match('#[^0-9.][^.]*\z#A', $name)) {
 			throw new InvalidArgumentException('Session name must be a string and cannot contain dot.');
 		}
 
@@ -268,7 +288,7 @@ class NSession extends NObject
 	 */
 	public function getName()
 	{
-		return session_name();
+		return isset($this->options['name']) ? $this->options['name'] : session_name();
 	}
 
 
@@ -419,16 +439,10 @@ class NSession extends NObject
 			if (!strncmp($key, 'session.', 8)) { // back compatibility
 				$key = substr($key, 8);
 			}
+			$key = strtolower(preg_replace('#(.)(?=[A-Z])#', '$1_', $key));
 
-			if ($value === NULL) {
+			if ($value === NULL || ini_get("session.$key") == $value) { // intentionally ==
 				continue;
-
-			} elseif (isset($special[$key])) {
-				if (self::$started) {
-					throw new InvalidStateException("Unable to set '$key' when session has been started.");
-				}
-				$key = "session_$key";
-				$key($value);
 
 			} elseif (strncmp($key, 'cookie_', 7) === 0) {
 				if (!isset($cookie)) {
@@ -436,16 +450,20 @@ class NSession extends NObject
 				}
 				$cookie[substr($key, 7)] = $value;
 
-			} elseif (!function_exists('ini_set')) {
-				if (ini_get($key) != $value && !NFramework::$iAmUsingBadHost) { // intentionally ==
+			} else {
+				if (defined('SID')) {
+					throw new InvalidStateException("Unable to set 'session.$key' to value '$value' when session has been started" . ($this->started ? "." : " by session.auto_start or session_start()."));
+				}
+				if (isset($special[$key])) {
+					$key = "session_$key";
+					$key($value);
+
+				} elseif (function_exists('ini_set')) {
+					ini_set("session.$key", $value);
+
+				} elseif (!NFramework::$iAmUsingBadHost) {
 					throw new NotSupportedException('Required function ini_set() is disabled.');
 				}
-
-			} else {
-				if (self::$started) {
-					throw new InvalidStateException("Unable to set '$key' when session has been started.");
-				}
-				ini_set("session.$key", $value);
 			}
 		}
 
@@ -493,7 +511,7 @@ class NSession extends NObject
 	 * @param  bool    secure
 	 * @return NSession  provides a fluent interface
 	 */
-	public function setCookieParams($path, $domain = NULL, $secure = NULL)
+	public function setCookieParameters($path, $domain = NULL, $secure = NULL)
 	{
 		return $this->setOptions(array(
 			'cookie_path' => $path,
@@ -508,9 +526,18 @@ class NSession extends NObject
 	 * Returns the session cookie parameters.
 	 * @return array  containing items: lifetime, path, domain, secure, httponly
 	 */
-	public function getCookieParams()
+	public function getCookieParameters()
 	{
 		return session_get_cookie_params();
+	}
+
+
+
+	/** @deprecated */
+	function setCookieParams($path, $domain = NULL, $secure = NULL)
+	{
+		trigger_error(__METHOD__ . '() is deprecated; use setCookieParameters() instead.', E_USER_WARNING);
+		return $this->setCookieParameters($path, $domain, $secure);
 	}
 
 
@@ -551,7 +578,7 @@ class NSession extends NObject
 	 */
 	private function sendCookie()
 	{
-		$cookie = $this->getCookieParams();
+		$cookie = $this->getCookieParameters();
 		$this->response->setCookie(
 			session_name(), session_id(),
 			$cookie['lifetime'] ? $cookie['lifetime'] + time() : 0,

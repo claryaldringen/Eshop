@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Output caching helper.
  *
  * @author     David Grudl
+ * @package Nette\Caching
  */
 class NCachingHelper extends NObject
 {
@@ -45,14 +42,15 @@ class NCachingHelper extends NObject
 
 	/**
 	 * Stops and saves the cache.
+	 * @param  array  dependencies
 	 * @return void
 	 */
-	public function end()
+	public function end(array $dependencies = NULL)
 	{
 		if ($this->cache === NULL) {
 			throw new InvalidStateException('Output cache has already been saved.');
 		}
-		$this->cache->save($this->key, ob_get_flush(), $this->dependencies);
+		$this->cache->save($this->key, ob_get_flush(), (array) $dependencies + (array) $this->dependencies);
 		$this->cache = NULL;
 	}
 

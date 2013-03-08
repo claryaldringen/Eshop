@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,15 +12,11 @@
 
 
 
-
-
-
-
 /**
  * HTML helper.
  *
  * <code>
- * $anchor = NHtml::el('a')->href($link)->setText('Nette');
+ * $el = NHtml::el('a')->href($link)->setText('Nette');
  * $el->class = 'myclass';
  * echo $el;
  *
@@ -28,6 +24,7 @@
  * </code>
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 class NHtml extends NObject implements ArrayAccess, Countable, IteratorAggregate
 {
@@ -158,6 +155,18 @@ class NHtml extends NObject implements ArrayAccess, Countable, IteratorAggregate
 	final public function &__get($name)
 	{
 		return $this->attrs[$name];
+	}
+
+
+
+	/**
+	 * Overloaded tester for element's attribute.
+	 * @param  string    HTML attribute name
+	 * @return void
+	 */
+	final public function __isset($name)
+	{
+		return isset($this->attrs[$name]);
 	}
 
 
@@ -452,7 +461,7 @@ class NHtml extends NObject implements ArrayAccess, Countable, IteratorAggregate
 
 	/**
 	 * Returns all of children.
-	 * return array
+	 * @return array
 	 */
 	final public function getChildren()
 	{

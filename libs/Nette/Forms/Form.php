@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,32 +12,23 @@
 
 
 
-
-
-
-
 /**
  * Creates, validates and renders HTML forms.
  *
  * @author     David Grudl
  *
- * @example    forms/basic-example.php  Form definition using fluent interfaces
- * @example    forms/manual-rendering.php  Manual form rendering and separated form and rules definition
- * @example    forms/localization.php  Localization (with Zend_Translate)
- * @example    forms/custom-rendering.php  Custom form rendering
- * @example    forms/custom-validator.php  How to use custom validator
- * @example    forms/naming-containers.php  How to use naming containers
- * @example    forms/CSRF-protection.php  How to use Cross-Site Request Forgery (CSRF) form protection
- *
- * @property   string $action
+ * @property   mixed $action
  * @property   string $method
  * @property-read array $groups
+ * @property   ITranslator|NULL $translator
+ * @property-read bool $anchored
+ * @property-read ISubmitterControl|FALSE $submitted
+ * @property-read bool $success
  * @property-read array $httpData
- * @property   ITranslator $translator
  * @property-read array $errors
  * @property-read NHtml $elementPrototype
  * @property   IFormRenderer $renderer
- * @property-read bool $submitted
+ * @package Nette\Forms
  */
 class NForm extends NFormContainer
 {
@@ -65,6 +56,9 @@ class NForm extends NFormContainer
 		NUMERIC = ':integer',
 		FLOAT = ':float',
 		RANGE = ':range';
+
+	// multiselect
+	const COUNT = ':length';
 
 	// file upload
 	const MAX_FILE_SIZE = ':fileSize',
@@ -108,7 +102,7 @@ class NForm extends NFormContainer
 	/** @var ITranslator */
 	private $translator;
 
-	/** @var array of NFormGroup */
+	/** @var NFormGroup[] */
 	private $groups = array();
 
 	/** @var array */
@@ -125,7 +119,7 @@ class NForm extends NFormContainer
 		$this->element = NHtml::el('form');
 		$this->element->action = ''; // RFC 1808 -> empty uri means 'this'
 		$this->element->method = self::POST;
-		$this->element->id = 'frm-' . $name;
+		$this->element->id = $name === NULL ? NULL : 'frm-' . $name;
 
 		$this->monitor(__CLASS__);
 		if ($name !== NULL) {
@@ -281,7 +275,7 @@ class NForm extends NFormContainer
 		}
 
 		foreach ($group->getControls() as $control) {
-			$this->removeComponent($control);
+			$control->getParent()->removeComponent($control);
 		}
 
 		unset($this->groups[$name]);
@@ -291,7 +285,7 @@ class NForm extends NFormContainer
 
 	/**
 	 * Returns all defined groups.
-	 * @return array of FormGroup
+	 * @return NFormGroup[]
 	 */
 	public function getGroups()
 	{
@@ -318,7 +312,6 @@ class NForm extends NFormContainer
 
 	/**
 	 * Sets translate adapter.
-	 * @param  ITranslator
 	 * @return NForm  provides a fluent interface
 	 */
 	public function setTranslator(ITranslator $translator = NULL)
@@ -361,9 +354,8 @@ class NForm extends NFormContainer
 	 */
 	final public function isSubmitted()
 	{
-		if ($this->submittedBy === NULL) {
-			$this->getHttpData();
-			$this->submittedBy = !empty($this->httpData);
+		if ($this->submittedBy === NULL && count($this->getControls())) {
+			$this->submittedBy = (bool) $this->getHttpData();
 		}
 		return $this->submittedBy;
 	}
@@ -371,8 +363,18 @@ class NForm extends NFormContainer
 
 
 	/**
+	 * Tells if the form was submitted and successfully validated.
+	 * @return bool
+	 */
+	final public function isSuccess()
+	{
+		return $this->isSubmitted() && $this->isValid();
+	}
+
+
+
+	/**
 	 * Sets the submittor control.
-	 * @param  ISubmitterControl
 	 * @return NForm  provides a fluent interface
 	 */
 	public function setSubmittedBy(ISubmitterControl $by = NULL)
@@ -393,7 +395,7 @@ class NForm extends NFormContainer
 			if (!$this->isAnchored()) {
 				throw new InvalidStateException('Form is not anchored and therefore can not determine whether it was submitted.');
 			}
-			$this->httpData = (array) $this->receiveHttpData();
+			$this->httpData = $this->receiveHttpData();
 		}
 		return $this->httpData;
 	}
@@ -412,12 +414,13 @@ class NForm extends NFormContainer
 		} elseif ($this->submittedBy instanceof ISubmitterControl) {
 			if (!$this->submittedBy->getValidationScope() || $this->isValid()) {
 				$this->submittedBy->click();
+				$valid = TRUE;
 			} else {
 				$this->submittedBy->onInvalidClick($this->submittedBy);
 			}
 		}
 
-		if ($this->isValid()) {
+		if (isset($valid) || $this->isValid()) {
 			$this->onSuccess($this);
 		} else {
 			$this->onError($this);
@@ -431,7 +434,7 @@ class NForm extends NFormContainer
 			$this->onSubmit($this);
 		} elseif ($this->onSubmit) {
 			trigger_error(__CLASS__ . '->onSubmit changed its behavior; use onSuccess instead.', E_USER_WARNING);
-			if ($this->isValid()) {
+			if (isset($valid) || $this->isValid()) {
 				$this->onSubmit($this);
 			}
 		}
@@ -447,7 +450,7 @@ class NForm extends NFormContainer
 	{
 		$httpRequest = $this->getHttpRequest();
 		if (strcasecmp($this->getMethod(), $httpRequest->getMethod())) {
-			return;
+			return array();
 		}
 
 		if ($httpRequest->isMethod('post')) {
@@ -458,7 +461,7 @@ class NForm extends NFormContainer
 
 		if ($tracker = $this->getComponent(self::TRACKER_ID, FALSE)) {
 			if (!isset($data[self::TRACKER_ID]) || $data[self::TRACKER_ID] !== $tracker->getValue()) {
-				return;
+				return array();
 			}
 		}
 
@@ -473,11 +476,11 @@ class NForm extends NFormContainer
 
 	/**
 	 * Returns the values submitted by the form.
-	 * @return array
+	 * @return NArrayHash|array
 	 */
-	public function getValues()
+	public function getValues($asArray = FALSE)
 	{
-		$values = parent::getValues();
+		$values = parent::getValues($asArray);
 		unset($values[self::TRACKER_ID], $values[self::PROTECTOR_ID]);
 		return $values;
 	}
@@ -552,7 +555,6 @@ class NForm extends NFormContainer
 
 	/**
 	 * Sets form renderer.
-	 * @param  IFormRenderer
 	 * @return NForm  provides a fluent interface
 	 */
 	public function setRenderer(IFormRenderer $renderer)
@@ -604,7 +606,7 @@ class NForm extends NFormContainer
 			if (func_get_args() && func_get_arg(0)) {
 				throw $e;
 			} else {
-				NDebugger::toStringException($e);
+				trigger_error("Exception in " . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
 			}
 		}
 	}

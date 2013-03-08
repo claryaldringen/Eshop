@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Memcached storage.
  *
  * @author     David Grudl
+ * @package Nette\Caching\Storages
  */
 class NMemcachedStorage extends NObject implements ICacheStorage
 {
@@ -59,11 +56,29 @@ class NMemcachedStorage extends NObject implements ICacheStorage
 		$this->prefix = $prefix;
 		$this->journal = $journal;
 		$this->memcache = new Memcache;
-		NDebugger::tryError();
-		$this->memcache->connect($host, $port);
-		if (NDebugger::catchError($e)) {
-			throw new InvalidStateException('Memcache::connect(): ' . $e->getMessage(), 0, $e);
+		if ($host) {
+			$this->addServer($host, $port);
 		}
+	}
+
+
+
+	public function addServer($host = 'localhost', $port = 11211, $timeout = 1)
+	{
+		if ($this->memcache->addServer($host, $port, TRUE, 1, $timeout) === FALSE) {
+			$error = error_get_last();
+			throw new InvalidStateException("Memcache::addServer(): $error[message].");
+		}
+	}
+
+
+
+	/**
+	 * @return Memcache
+	 */
+	public function getConnection()
+	{
+		return $this->memcache;
 	}
 
 
@@ -99,6 +114,17 @@ class NMemcachedStorage extends NObject implements ICacheStorage
 		}
 
 		return $meta[self::META_DATA];
+	}
+
+
+
+	/**
+	 * Prevents item reading and writing. Lock is released by write() or remove().
+	 * @param  string key
+	 * @return void
+	 */
+	public function lock($key)
+	{
 	}
 
 
@@ -162,13 +188,13 @@ class NMemcachedStorage extends NObject implements ICacheStorage
 	 * @param  array  conditions
 	 * @return void
 	 */
-	public function clean(array $conds)
+	public function clean(array $conditions)
 	{
-		if (!empty($conds[NCache::ALL])) {
+		if (!empty($conditions[NCache::ALL])) {
 			$this->memcache->flush();
 
 		} elseif ($this->journal) {
-			foreach ($this->journal->clean($conds) as $entry) {
+			foreach ($this->journal->clean($conditions) as $entry) {
 				$this->memcache->delete($entry, 0);
 			}
 		}

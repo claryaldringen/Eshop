@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Default presenter loader.
  *
  * @author     David Grudl
+ * @package Nette\Application
  */
 class NPresenterFactory implements IPresenterFactory
 {
@@ -32,18 +29,18 @@ class NPresenterFactory implements IPresenterFactory
 	/** @var array */
 	private $cache = array();
 
-	/** @var IDiContainer */
-	private $context;
+	/** @var NDIContainer */
+	private $container;
 
 
 
 	/**
 	 * @param  string
 	 */
-	public function __construct($baseDir, IDiContainer $context)
+	public function __construct($baseDir, NDIContainer $container)
 	{
 		$this->baseDir = $baseDir;
-		$this->context = $context;
+		$this->container = $container;
 	}
 
 
@@ -55,9 +52,19 @@ class NPresenterFactory implements IPresenterFactory
 	 */
 	public function createPresenter($name)
 	{
-		$class = $this->getPresenterClass($name);
-		$presenter = new $class;
-		$presenter->setContext($this->context);
+		$presenter = $this->container->createInstance($this->getPresenterClass($name));
+		if (method_exists($presenter, 'setContext')) {
+			$this->container->callMethod(array($presenter, 'setContext'));
+		}
+		foreach (array_reverse(get_class_methods($presenter)) as $method) {
+			if (substr($method, 0, 6) === 'inject') {
+				$this->container->callMethod(array($presenter, $method));
+			}
+		}
+
+		if ($presenter instanceof NPresenter && $presenter->invalidLinkMode === NULL) {
+			$presenter->invalidLinkMode = $this->container->parameters['debugMode'] ? NPresenter::INVALID_LINK_WARNING : NPresenter::INVALID_LINK_SILENT;
+		}
 		return $presenter;
 	}
 
@@ -75,7 +82,7 @@ class NPresenterFactory implements IPresenterFactory
 			return $class;
 		}
 
-		if (!is_string($name) || !NStrings::match($name, "#^[a-zA-Z\x7f-\xff][a-zA-Z0-9\x7f-\xff:]*$#")) {
+		if (!is_string($name) || !NStrings::match($name, '#^[a-zA-Z\x7f-\xff][a-zA-Z0-9\x7f-\xff:]*\z#')) {
 			throw new NInvalidPresenterException("Presenter name must be alphanumeric string, '$name' is invalid.");
 		}
 
@@ -85,7 +92,7 @@ class NPresenterFactory implements IPresenterFactory
 			// internal autoloading
 			$file = $this->formatPresenterFile($name);
 			if (is_file($file) && is_readable($file)) {
-				NLimitedScope::load($file);
+				NLimitedScope::load($file, TRUE);
 			}
 
 			if (!class_exists($class)) {

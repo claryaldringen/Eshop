@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,12 @@
 
 
 
-
-
-
-
 /**
  * Nette environment and configuration.
  *
  * @author     David Grudl
+ * @deprecated
+ * @package Nette
  */
 final class NEnvironment
 {
@@ -28,10 +26,13 @@ final class NEnvironment
 		PRODUCTION = 'production',
 		CONSOLE = 'console';
 
-	/** @var NConfigurator */
-	private static $configurator;
+	/** @var bool */
+	private static $productionMode;
 
-	/** @var IDiContainer */
+	/** @var string */
+	private static $createdAt;
+
+	/** @var NDIContainer */
 	private static $context;
 
 
@@ -46,32 +47,6 @@ final class NEnvironment
 
 
 
-	/**
-	 * Sets "class behind Environment" configurator.
-	 * @param  NConfigurator
-	 * @return void
-	 */
-	public static function setConfigurator(NConfigurator $configurator)
-	{
-		self::$configurator = $configurator;
-	}
-
-
-
-	/**
-	 * Gets "class behind Environment" configurator.
-	 * @return NConfigurator
-	 */
-	public static function getConfigurator()
-	{
-		if (self::$configurator === NULL) {
-			self::$configurator = ($tmp= NConfigurator::$instance) ? $tmp : new NConfigurator;
-		}
-		return self::$configurator;
-	}
-
-
-
 	/********************* environment modes ****************d*g**/
 
 
@@ -82,7 +57,7 @@ final class NEnvironment
 	 */
 	public static function isConsole()
 	{
-		return self::getContext()->params['consoleMode'];
+		return PHP_SAPI === 'cli';
 	}
 
 
@@ -93,7 +68,10 @@ final class NEnvironment
 	 */
 	public static function isProduction()
 	{
-		return self::getContext()->params['productionMode'];
+		if (self::$productionMode === NULL) {
+			self::$productionMode = !NConfigurator::detectDebugMode();
+		}
+		return self::$productionMode;
 	}
 
 
@@ -105,7 +83,7 @@ final class NEnvironment
 	 */
 	public static function setProductionMode($value = TRUE)
 	{
-		self::getContext()->params['productionMode'] = (bool) $value;
+		self::$productionMode = (bool) $value;
 	}
 
 
@@ -126,7 +104,7 @@ final class NEnvironment
 		if ($expand && is_string($value)) {
 			$value = self::getContext()->expand($value);
 		}
-		self::getContext()->params[$name] = $value;
+		self::getContext()->parameters[$name] = $value;
 	}
 
 
@@ -140,8 +118,8 @@ final class NEnvironment
 	 */
 	public static function getVariable($name, $default = NULL)
 	{
-		if (isset(self::getContext()->params[$name])) {
-			return self::getContext()->params[$name];
+		if (isset(self::getContext()->parameters[$name])) {
+			return self::getContext()->parameters[$name];
 		} elseif (func_num_args() > 1) {
 			return $default;
 		} else {
@@ -157,7 +135,7 @@ final class NEnvironment
 	 */
 	public static function getVariables()
 	{
-		return self::getContext()->params;
+		return self::getContext()->parameters;
 	}
 
 
@@ -183,8 +161,11 @@ final class NEnvironment
 	 * Sets initial instance of context.
 	 * @return void
 	 */
-	public static function setContext(IDiContainer $context)
+	public static function setContext(NDIContainer $context)
 	{
+		if (self::$createdAt) {
+			throw new InvalidStateException('Configurator & SystemContainer has already been created automatically by NEnvironment at ' . self::$createdAt);
+		}
 		self::$context = $context;
 	}
 
@@ -192,12 +173,12 @@ final class NEnvironment
 
 	/**
 	 * Get initial instance of context.
-	 * @return IDiContainer
+	 * @return SystemContainer|NDIContainer
 	 */
 	public static function getContext()
 	{
 		if (self::$context === NULL) {
-			self::$context = self::getConfigurator()->getContainer();
+			self::loadConfig();
 		}
 		return self::$context;
 	}
@@ -238,7 +219,7 @@ final class NEnvironment
 	 */
 	public static function getHttpRequest()
 	{
-		return self::getContext()->httpRequest;
+		return self::getContext()->getByType('IHttpRequest');
 	}
 
 
@@ -248,7 +229,7 @@ final class NEnvironment
 	 */
 	public static function getHttpContext()
 	{
-		return self::getContext()->httpContext;
+		return self::getContext()->getByType('NHttpContext');
 	}
 
 
@@ -258,7 +239,7 @@ final class NEnvironment
 	 */
 	public static function getHttpResponse()
 	{
-		return self::getContext()->httpResponse;
+		return self::getContext()->getByType('IHttpResponse');
 	}
 
 
@@ -268,7 +249,7 @@ final class NEnvironment
 	 */
 	public static function getApplication()
 	{
-		return self::getContext()->application;
+		return self::getContext()->getByType('NApplication');
 	}
 
 
@@ -278,7 +259,7 @@ final class NEnvironment
 	 */
 	public static function getUser()
 	{
-		return self::getContext()->user;
+		return self::getContext()->getByType('NUser');
 	}
 
 
@@ -288,7 +269,7 @@ final class NEnvironment
 	 */
 	public static function getRobotLoader()
 	{
-		return self::getContext()->robotLoader;
+		return self::getContext()->getByType('NRobotLoader');
 	}
 
 
@@ -334,8 +315,26 @@ final class NEnvironment
 	 */
 	public static function loadConfig($file = NULL, $section = NULL)
 	{
-		self::getConfigurator()->loadConfig($file, $section);
-		return self::getContext()->params;
+		if (self::$createdAt) {
+			throw new InvalidStateException('NConfigurator has already been created automatically by NEnvironment at ' . self::$createdAt);
+		}
+		$configurator = new NConfigurator;
+		$configurator
+			->setDebugMode(!self::isProduction())
+			->setTempDirectory(defined('TEMP_DIR') ? TEMP_DIR : '');
+		if ($file) {
+			$configurator->addConfig($file, $section);
+		}
+		self::$context = $configurator->createContainer();
+
+		self::$createdAt = '?';
+		foreach (PHP_VERSION_ID < 50205 ? debug_backtrace() :debug_backtrace(FALSE) as $row) {
+			if (isset($row['file']) && is_file($row['file']) && strpos($row['file'], NETTE_DIR . DIRECTORY_SEPARATOR) !== 0) {
+				self::$createdAt = "$row[file]:$row[line]";
+				break;
+			}
+		}
+		return self::getConfig();
 	}
 
 
@@ -348,7 +347,7 @@ final class NEnvironment
 	 */
 	public static function getConfig($key = NULL, $default = NULL)
 	{
-		$params = self::getContext()->params;
+		$params = NArrayHash::from(self::getContext()->parameters);
 		if (func_num_args()) {
 			return isset($params[$key]) ? $params[$key] : $default;
 		} else {

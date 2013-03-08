@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,16 +12,13 @@
 
 
 
-
-
-
-
 /**
  * Provides objects to work as array.
  *
  * @author     David Grudl
+ * @package Nette
  */
-class NArrayHash implements ArrayAccess, Countable, IteratorAggregate
+class NArrayHash extends stdClass implements ArrayAccess, Countable, IteratorAggregate
 {
 
 	/**
@@ -68,8 +65,6 @@ class NArrayHash implements ArrayAccess, Countable, IteratorAggregate
 
 	/**
 	 * Replaces or appends a item.
-	 * @param  mixed
-	 * @param  mixed
 	 * @return void
 	 */
 	public function offsetSet($key, $value)
@@ -84,7 +79,6 @@ class NArrayHash implements ArrayAccess, Countable, IteratorAggregate
 
 	/**
 	 * Returns a item.
-	 * @param  mixed
 	 * @return mixed
 	 */
 	public function offsetGet($key)
@@ -96,7 +90,6 @@ class NArrayHash implements ArrayAccess, Countable, IteratorAggregate
 
 	/**
 	 * Determines whether a item exists.
-	 * @param  mixed
 	 * @return bool
 	 */
 	public function offsetExists($key)
@@ -108,7 +101,6 @@ class NArrayHash implements ArrayAccess, Countable, IteratorAggregate
 
 	/**
 	 * Removes the element from this list.
-	 * @param  mixed
 	 * @return void
 	 */
 	public function offsetUnset($key)

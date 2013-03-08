@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,20 +12,17 @@
 
 
 
-
-
-
-
 /**
- * ComponentContainer is default implementation of IComponentContainer.
+ * ComponentContainer is default implementation of IContainer.
  *
  * @author     David Grudl
  *
  * @property-read ArrayIterator $components
+ * @package Nette\ComponentModel
  */
 class NComponentContainer extends NComponent implements IComponentContainer
 {
-	/** @var array of IComponent */
+	/** @var IComponent[] */
 	private $components = array();
 
 	/** @var IComponent|NULL */
@@ -33,16 +30,16 @@ class NComponentContainer extends NComponent implements IComponentContainer
 
 
 
-	/********************* interface IComponentContainer ****************d*g**/
+	/********************* interface IContainer ****************d*g**/
 
 
 
 	/**
-	 * Adds the specified component to the IComponentContainer.
+	 * Adds the specified component to the IContainer.
 	 * @param  IComponent
 	 * @param  string
 	 * @param  string
-	 * @return void
+	 * @return NComponentContainer  provides a fluent interface
 	 * @throws InvalidStateException
 	 */
 	public function addComponent(IComponent $component, $name, $insertBefore = NULL)
@@ -57,7 +54,7 @@ class NComponentContainer extends NComponent implements IComponentContainer
 		} elseif (!is_string($name)) {
 			throw new InvalidArgumentException("Component name must be integer or string, " . gettype($name) . " given.");
 
-		} elseif (!preg_match('#^[a-zA-Z0-9_]+$#', $name)) {
+		} elseif (!preg_match('#^[a-zA-Z0-9_]+\z#', $name)) {
 			throw new InvalidArgumentException("Component name must be non-empty alphanumeric string, '$name' given.");
 		}
 
@@ -96,13 +93,13 @@ class NComponentContainer extends NComponent implements IComponentContainer
 			unset($this->components[$name]); // undo
 			throw $e;
 		}
+		return $this;
 	}
 
 
 
 	/**
-	 * Removes a component from the IComponentContainer.
-	 * @param  IComponent
+	 * Removes a component from the IContainer.
 	 * @return void
 	 */
 	public function removeComponent(IComponent $component)
@@ -213,7 +210,6 @@ class NComponentContainer extends NComponent implements IComponentContainer
 
 	/**
 	 * Descendant can override this method to disallow insert a child by throwing an InvalidStateException.
-	 * @param  IComponent
 	 * @return void
 	 * @throws InvalidStateException
 	 */

@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Btree+ based file journal.
  *
  * @author     Jakub Onderka
+ * @package Nette\Caching\Storages
  */
 class NFileJournal extends NObject implements ICacheJournal
 {
@@ -77,10 +74,10 @@ class NFileJournal extends NObject implements ICacheJournal
 	/** @var int Last complete free node */
 	private $lastNode = 2;
 
-	/** @var int Last modification time of journal file */
-	private $lastModTime = NULL;
+	/** @var string */
+	private $processIdentifier;
 
-	/** @var array Cache and uncommited but changed nodes */
+	/** @var array Cache and uncommitted but changed nodes */
 	private $nodeCache = array();
 
 	/** @var array */
@@ -104,53 +101,12 @@ class NFileJournal extends NObject implements ICacheJournal
 	);
 
 
-
 	/**
-	 * @param  string  Directory location with journal file
-	 * @return void
+	 * @param  string  Directory containing journal file
 	 */
 	public function __construct($dir)
 	{
 		$this->file = $dir . '/' . self::FILE;
-
-		// Create jorunal file when not exists
-		if (!file_exists($this->file)) {
-			$init = @fopen($this->file, 'xb'); // intentionally @
-			if (!$init) {
-				clearstatcache();
-				if (!file_exists($this->file)) {
-					throw new InvalidStateException("Cannot create journal file $this->file.");
-				}
-			} else {
-				$writen = fwrite($init, pack('N2', self::FILE_MAGIC, $this->lastNode));
-				fclose($init);
-				if ($writen !== self::INT32_SIZE * 2) {
-					throw new InvalidStateException("Cannot write journal header.");
-				}
-			}
-		}
-
-		$this->handle = fopen($this->file, 'r+b');
-
-		if (!$this->handle) {
-			throw new InvalidStateException("Cannot open journal file '$this->file'.");
-		}
-
-		if (!flock($this->handle, LOCK_SH)) {
-			throw new InvalidStateException('Cannot acquire shared lock on journal.');
-		}
-
-		$header = stream_get_contents($this->handle, 2 * self::INT32_SIZE, 0);
-
-		flock($this->handle, LOCK_UN);
-
-		list(, $fileMagic, $this->lastNode) = unpack('N2', $header);
-
-		if ($fileMagic !== self::FILE_MAGIC) {
-			fclose($this->handle);
-			$this->handle = false;
-			throw new InvalidStateException("Malformed journal file '$this->file'.");
-		}
 	}
 
 
@@ -162,9 +118,9 @@ class NFileJournal extends NObject implements ICacheJournal
 	{
 		if ($this->handle) {
 			$this->headerCommit();
-			flock($this->handle, LOCK_UN); // Since PHP 5.3.3 is manual unlock necesary
+			flock($this->handle, LOCK_UN); // Since PHP 5.3.3 is manual unlock necessary
 			fclose($this->handle);
-			$this->handle = false;
+			$this->handle = FALSE;
 		}
 	}
 
@@ -198,7 +154,7 @@ class NFileJournal extends NObject implements ICacheJournal
 							$this->saveNode($link >> self::BITROT, $dataNode);
 						}
 						$exists = TRUE;
-					} else { // Alredy exists, but with other tags or priority
+					} else { // Already exists, but with other tags or priority
 						$toDelete = array();
 						foreach ($dataNode[$link][self::TAGS] as $tag) {
 							$toDelete[self::TAGS][$tag][$link] = TRUE;
@@ -208,9 +164,12 @@ class NFileJournal extends NObject implements ICacheJournal
 						}
 						$toDelete[self::ENTRIES][$keyHash][$link] = TRUE;
 						$this->cleanFromIndex($toDelete);
-						$entriesNode = $this->getNode($entriesNodeId); // Node was changed, get again
+
 						unset($dataNode[$link]);
 						$this->saveNode($link >> self::BITROT, $dataNode);
+
+						// Node was changed but may be empty, find it again
+						list($entriesNodeId, $entriesNode) = $this->findIndexNode(self::ENTRIES, $keyHash);
 					}
 					break;
 				}
@@ -239,7 +198,7 @@ class NFileJournal extends NObject implements ICacheJournal
 				);
 			}
 
-			$dataNodeKey = ++$data[self::INFO][self::LAST_INDEX];
+			$dataNodeKey = $this->findNextFreeKey($freeDataNode, $data);
 			$data[$dataNodeKey] = array(
 				self::KEY => $key,
 				self::TAGS => $tags ? $tags : array(),
@@ -263,7 +222,7 @@ class NFileJournal extends NObject implements ICacheJournal
 			}
 
 			// ...and priority tree.
-			if ($priority) {
+			if ($priority !== FALSE) {
 				list($nodeId, $node) = $this->findIndexNode(self::PRIORITY, $priority);
 				$node[$priority][$dataNodeKey] = 1;
 				$this->saveNode($nodeId, $node);
@@ -289,7 +248,7 @@ class NFileJournal extends NObject implements ICacheJournal
 			$this->nodeCache = $this->nodeChanged = $this->dataNodeFreeSpace = array();
 			$this->deleteAll();
 			$this->unlock();
-			return;
+			return NULL;
 		}
 
 		$toDelete = array(
@@ -321,6 +280,7 @@ class NFileJournal extends NObject implements ICacheJournal
 
 	/**
 	 * Cleans entries from journal by tags.
+	 * @param  array
 	 * @param  array
 	 * @return array of removed items
 	 */
@@ -420,7 +380,7 @@ class NFileJournal extends NObject implements ICacheJournal
 
 			if ($node === FALSE) {
 				if (self::$debug) {
-					throw new InvalidStateException('Cannot load node number ' . ($nodeId) . '.');
+					throw new InvalidStateException("Cannot load node number $nodeId.");
 				}
 				++$i;
 				continue;
@@ -431,7 +391,7 @@ class NFileJournal extends NObject implements ICacheJournal
 
 				if (!isset($node[$link])) {
 					if (self::$debug) {
-						throw new InvalidStateException("Link with ID $searchLink is not in node ". ($nodeId) . '.');
+						throw new InvalidStateException("Link with ID $searchLink is not in node $nodeId.");
 					}
 					continue;
 				} elseif (isset($this->deletedLinks[$link])) {
@@ -629,7 +589,7 @@ class NFileJournal extends NObject implements ICacheJournal
 			return FALSE;
 		}
 
-		list(, $magic, $lenght) = unpack('N2', $binary);
+		list(, $magic, $length) = unpack('N2', $binary);
 		if ($magic !== self::INDEX_MAGIC && $magic !== self::DATA_MAGIC) {
 			if (!empty($magic)) {
 				if (self::$debug) {
@@ -640,13 +600,13 @@ class NFileJournal extends NObject implements ICacheJournal
 			return FALSE;
 		}
 
-		$data = substr($binary, 2 * self::INT32_SIZE, $lenght - 2 * self::INT32_SIZE);
+		$data = substr($binary, 2 * self::INT32_SIZE, $length - 2 * self::INT32_SIZE);
 
 		$node = @unserialize($data); // intentionally @
 		if ($node === FALSE) {
 			$this->deleteNode($id);
 			if (self::$debug) {
-				throw new InvalidStateException("Cannot deserialize node number $id.");
+				throw new InvalidStateException("Cannot unserialize node number $id.");
 			}
 			return FALSE;
 		}
@@ -712,7 +672,7 @@ class NFileJournal extends NObject implements ICacheJournal
 							$prevNode = $this->getNode($nodeInfo[self::PREV_NODE]);
 							if ($prevNode === FALSE) {
 								if (self::$debug) {
-									throw new InvalidStateException('Cannot load node number ' . $nodeInfo[self::PREV_NODE] . '.');
+									throw new InvalidStateException("Cannot load node number {$nodeInfo[self::PREV_NODE]}.");
 								}
 							} else {
 								$prevNode[self::INFO][self::MAX] = -1;
@@ -763,7 +723,7 @@ class NFileJournal extends NObject implements ICacheJournal
 	 * Prepare node to journal file structure.
 	 * @param  integer
 	 * @param  array|bool
-	 * @return bool Sucessfully commited
+	 * @return bool Successfully committed
 	 */
 	private function prepareNode($id, $node)
 	{
@@ -813,8 +773,8 @@ class NFileJournal extends NObject implements ICacheJournal
 	private function commitNode($id, $str)
 	{
 		fseek($this->handle, self::HEADER_SIZE + self::NODE_SIZE * $id);
-		$writen = fwrite($this->handle, $str);
-		if ($writen === FALSE) {
+		$written = fwrite($this->handle, $str);
+		if ($written === FALSE) {
 			throw new InvalidStateException("Cannot write node number $id to journal.");
 		}
 	}
@@ -1076,7 +1036,7 @@ class NFileJournal extends NObject implements ICacheJournal
 	private function headerCommit()
 	{
 		fseek($this->handle, self::INT32_SIZE);
-		@fwrite($this->handle, pack('N', $this->lastNode));  // intentionally @, save is not necceseary
+		@fwrite($this->handle, pack('N', $this->lastNode));  // intentionally @, save is not necessary
 	}
 
 
@@ -1103,8 +1063,8 @@ class NFileJournal extends NObject implements ICacheJournal
 			}
 		} else {
 			fseek($this->handle, self::HEADER_SIZE + self::NODE_SIZE * $id);
-			$writen = fwrite($this->handle, pack('N', 0));
-			if ($writen !== self::INT32_SIZE) {
+			$written = fwrite($this->handle, pack('N', 0));
+			if ($written !== self::INT32_SIZE) {
 				throw new InvalidStateException("Cannot delete node number $id from journal.");
 			}
 		}
@@ -1114,7 +1074,7 @@ class NFileJournal extends NObject implements ICacheJournal
 
 	/**
 	 * Complete delete all nodes from file.
-	 * @return void
+	 * @throws InvalidStateException
 	 */
 	private function deleteAll()
 	{
@@ -1127,24 +1087,76 @@ class NFileJournal extends NObject implements ICacheJournal
 
 	/**
 	 * Lock file for writing and reading and delete node cache when file has changed.
-	 * @return void
+	 * @throws InvalidStateException
 	 */
 	private function lock()
 	{
 		if (!$this->handle) {
-			throw new InvalidStateException('File journal file is not opened');
+			$this->prepare();
 		}
 
 		if (!flock($this->handle, LOCK_EX)) {
-			throw new InvalidStateException('Cannot acquire exclusive lock on journal.');
+			throw new InvalidStateException("Cannot acquire exclusive lock on journal file '$this->file'.");
 		}
 
-		if ($this->lastModTime !== NULL) {
-			clearstatcache();
-			if ($this->lastModTime < @filemtime($this->file)) { // intentionally @
-				$this->nodeCache = $this->dataNodeFreeSpace = array();
+		$lastProcessIdentifier = stream_get_contents($this->handle, self::INT32_SIZE, self::INT32_SIZE * 2);
+		if ($lastProcessIdentifier !== $this->processIdentifier) {
+			$this->nodeCache = $this->dataNodeFreeSpace = array();
+
+			// Write current processIdentifier to file header
+			fseek($this->handle, self::INT32_SIZE * 2);
+			fwrite($this->handle, $this->processIdentifier);
+		}
+	}
+
+
+
+	/**
+	 * Open btfj.dat file (or create it if not exists) and load metainformation
+	 * @throws InvalidStateException
+	 */
+	private function prepare()
+	{
+		// Create journal file when not exists
+		if (!file_exists($this->file)) {
+			$init = @fopen($this->file, 'xb'); // intentionally @
+			if (!$init) {
+				clearstatcache();
+				if (!file_exists($this->file)) {
+					throw new InvalidStateException("Cannot create journal file '$this->file'.");
+				}
+			} else {
+				$written = fwrite($init, pack('N2', self::FILE_MAGIC, $this->lastNode));
+				fclose($init);
+				if ($written !== self::INT32_SIZE * 2) {
+					throw new InvalidStateException("Cannot write journal header.");
+				}
 			}
 		}
+
+		$this->handle = fopen($this->file, 'r+b');
+
+		if (!$this->handle) {
+			throw new InvalidStateException("Cannot open journal file '$this->file'.");
+		}
+
+		if (!flock($this->handle, LOCK_SH)) {
+			throw new InvalidStateException('Cannot acquire shared lock on journal.');
+		}
+
+		$header = stream_get_contents($this->handle, 2 * self::INT32_SIZE, 0);
+
+		flock($this->handle, LOCK_UN);
+
+		list(, $fileMagic, $this->lastNode) = unpack('N2', $header);
+
+		if ($fileMagic !== self::FILE_MAGIC) {
+			fclose($this->handle);
+			$this->handle = FALSE;
+			throw new InvalidStateException("Malformed journal file '$this->file'.");
+		}
+
+		$this->processIdentifier = pack('N', mt_rand());
 	}
 
 
@@ -1158,8 +1170,32 @@ class NFileJournal extends NObject implements ICacheJournal
 		if ($this->handle) {
 			fflush($this->handle);
 			flock($this->handle, LOCK_UN);
-			clearstatcache();
-			$this->lastModTime = @filemtime($this->file); // intentionally @
+		}
+	}
+
+
+
+	/**
+	 * @param  int $nodeId
+	 * @param  array $nodeData
+	 * @return int
+	 * @throws InvalidStateException
+	 */
+	private function findNextFreeKey($nodeId, array &$nodeData)
+	{
+	  $newKey = $nodeData[self::INFO][self::LAST_INDEX] + 1;
+		$maxKey = ($nodeId + 1) << self::BITROT;
+
+		if ($newKey >= $maxKey) {
+			$start = $nodeId << self::BITROT;
+			for ($i = $start; $i < $maxKey; $i++) {
+				if (!isset($nodeData[$i])) {
+					return $i;
+				}
+			}
+			throw new InvalidStateException("Node $nodeId is full.");
+		} else {
+			return ++$nodeData[self::INFO][self::LAST_INDEX];
 		}
 	}
 
@@ -1194,5 +1230,4 @@ class NFileJournal extends NObject implements ICacheJournal
 			$array[$key] = $value;
 		}
 	}
-
 }

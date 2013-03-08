@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,45 +12,45 @@
 
 
 
-
-
-
-
 /**
  * Nette auto loader is responsible for loading classes and interfaces.
  *
  * @author     David Grudl
+ *
+ * @property-read array $indexedClasses
+ * @property   ICacheStorage $cacheStorage
+ * @package Nette\Loaders
  */
 class NRobotLoader extends NAutoLoader
 {
-	/** @var array */
-	public $scanDirs;
+	const RETRY_LIMIT = 3;
 
-	/** @var string  comma separated wildcards */
+	/** @var array */
+	public $scanDirs = array();
+
+	/** @var string|array  comma separated wildcards */
 	public $ignoreDirs = '.*, *.old, *.bak, *.tmp, temp';
 
-	/** @var string  comma separated wildcards */
+	/** @var string|array  comma separated wildcards */
 	public $acceptFiles = '*.php, *.php5';
 
 	/** @var bool */
 	public $autoRebuild = TRUE;
 
-	/** @var array of lowered-class => [file, mtime, class] or FALSE */
-	private $list = array();
-
-	/** @var array of file => mtime */
-	private $files;
+	/** @var array of lowered-class => [file, mtime, class] or num-of-retry */
+	private $classes = array();
 
 	/** @var bool */
 	private $rebuilt = FALSE;
+
+	/** @var array of missing classes in this request */
+	private $missing = array();
 
 	/** @var ICacheStorage */
 	private $cacheStorage;
 
 
 
-	/**
-	 */
 	public function __construct()
 	{
 		if (!extension_loaded('tokenizer')) {
@@ -62,29 +62,19 @@ class NRobotLoader extends NAutoLoader
 
 	/**
 	 * Register autoloader.
-	 * @return void
+	 * @return NRobotLoader  provides a fluent interface
 	 */
 	public function register()
 	{
-		$cache = $this->getCache();
-		$key = $this->getKey();
-		if (isset($cache[$key])) {
-			$this->list = $cache[$key];
-		} else {
-			$this->rebuild();
-		}
-
-		if (isset($this->list[strtolower(__CLASS__)]) && class_exists('NNetteLoader', FALSE)) {
-			NNetteLoader::getInstance()->unregister();
-		}
-
+		$this->classes = $this->getCache()->load($this->getKey(), new NCallback($this, '_rebuildCallback'));
 		parent::register();
+		return $this;
 	}
 
 
 
 	/**
-	 * Handles autoloading of classes or interfaces.
+	 * Handles autoloading of classes, interfaces or traits.
 	 * @param  string
 	 * @return void
 	 */
@@ -92,80 +82,38 @@ class NRobotLoader extends NAutoLoader
 	{
 		$type = ltrim(strtolower($type), '\\'); // PHP namespace bug #49143
 
-		if (isset($this->list[$type][0]) && !is_file($this->list[$type][0])) {
-			unset($this->list[$type]);
+		$info = & $this->classes[$type];
+		if (isset($this->missing[$type]) || (is_int($info) && $info >= self::RETRY_LIMIT)) {
+			return;
 		}
 
-		if (!isset($this->list[$type])) {
-			$trace = debug_backtrace();
-			$initiator = & $trace[2]['function'];
-			if ($initiator === 'class_exists' || $initiator === 'interface_exists') {
-				$this->list[$type] = FALSE;
-				if ($this->autoRebuild && $this->rebuilt) {
-					$this->getCache()->save($this->getKey(), $this->list, array(
+		if ($this->autoRebuild) {
+			if (!is_array($info) || !is_file($info['file'])) {
+				$info = is_int($info) ? $info + 1 : 0;
+				if ($this->rebuilt) {
+					$this->getCache()->save($this->getKey(), $this->classes, array(
 						NCache::CONSTS => 'NFramework::REVISION',
 					));
+				} else {
+					$this->rebuild();
 				}
-			}
-
-			if ($this->autoRebuild && !$this->rebuilt) {
-				$this->rebuild();
+			} elseif (!$this->rebuilt && filemtime($info['file']) !== $info['time']) {
+				$this->updateFile($info['file']);
+				if (!isset($this->classes[$type])) {
+					$this->classes[$type] = 0;
+				}
+				$this->getCache()->save($this->getKey(), $this->classes, array(
+					NCache::CONSTS => 'NFramework::REVISION',
+				));
 			}
 		}
 
-		if (isset($this->list[$type][0])) {
-			NLimitedScope::load($this->list[$type][0]);
+		if (isset($this->classes[$type]['file'])) {
+			NLimitedScope::load($this->classes[$type]['file'], TRUE);
 			self::$count++;
+		} else {
+			$this->missing[$type] = TRUE;
 		}
-	}
-
-
-
-	/**
-	 * Rebuilds class list cache.
-	 * @return void
-	 */
-	public function rebuild()
-	{
-		$this->getCache()->save($this->getKey(), callback($this, '_rebuildCallback'), array(
-			NCache::CONSTS => 'NFramework::REVISION',
-		));
-		$this->rebuilt = TRUE;
-	}
-
-
-
-	/**
-	 * @internal
-	 */
-	public function _rebuildCallback()
-	{
-		foreach ($this->list as $pair) {
-			if ($pair) {
-				$this->files[$pair[0]] = $pair[1];
-			}
-		}
-		foreach (array_unique($this->scanDirs) as $dir) {
-			$this->scanDirectory($dir);
-		}
-		$this->files = NULL;
-		return $this->list;
-	}
-
-
-
-	/**
-	 * @return array of class => filename
-	 */
-	public function getIndexedClasses()
-	{
-		$res = array();
-		foreach ($this->list as $class => $pair) {
-			if ($pair) {
-				$res[$pair[2]] = $pair[0];
-			}
-		}
-		return $res;
 	}
 
 
@@ -191,69 +139,153 @@ class NRobotLoader extends NAutoLoader
 
 
 	/**
-	 * Add class and file name to the list.
-	 * @param  string
-	 * @param  string
-	 * @param  int
-	 * @return void
+	 * @return array of class => filename
 	 */
-	private function addClass($class, $file, $time)
+	public function getIndexedClasses()
 	{
-		$lClass = strtolower($class);
-		if (isset($this->list[$lClass][0]) && ($file2 = $this->list[$lClass][0]) !== $file && is_file($file2)) {
-			if ($this->files[$file2] !== filemtime($file2)) {
-				$this->scanScript($file2);
-				return $this->addClass($class, $file, $time);
-			}
-			$e = new InvalidStateException("Ambiguous class '$class' resolution; defined in $file and in " . $this->list[$lClass][0] . ".");
-			if (PHP_VERSION_ID < 50300) {
-				NDebugger::_exceptionHandler($e);
-				exit;
-			} else {
-				throw $e;
+		$res = array();
+		foreach ($this->classes as $class => $info) {
+			if (is_array($info)) {
+				$res[$info['orig']] = $info['file'];
 			}
 		}
-		$this->list[$lClass] = array($file, $time, $class);
-		$this->files[$file] = $time;
+		return $res;
 	}
 
 
 
 	/**
-	 * Scan a directory for PHP files, subdirectories and 'netterobots.txt' file.
-	 * @param  string
+	 * Rebuilds class list cache.
 	 * @return void
 	 */
-	private function scanDirectory($dir)
+	public function rebuild()
 	{
-		if (is_dir($dir)) {
-			$disallow = array();
-			$iterator = NFinder::findFiles(NStrings::split($this->acceptFiles, '#[,\s]+#'))
-				->filter(create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('disallow'=>&$disallow)).'], EXTR_REFS);
-					return !isset($disallow[$file->getPathname()]);
-				'))
-				->from($dir)
-				->exclude(NStrings::split($this->ignoreDirs, '#[,\s]+#'))
-				->filter($filter = create_function('$dir', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('disallow'=>&$disallow)).'], EXTR_REFS);
-					$path = $dir->getPathname();
-					if (is_file("$path/netterobots.txt")) {
-						foreach (file("$path/netterobots.txt") as $s) {
-							if ($matches = NStrings::match($s, \'#^disallow\\\\s*:\\\\s*(\\\\S+)#i\')) {
-								$disallow[$path . str_replace(\'/\', DIRECTORY_SEPARATOR, rtrim(\'/\' . ltrim($matches[1], \'/\'), \'/\'))] = TRUE;
-							}
+		$this->rebuilt = TRUE; // prevents calling rebuild() or updateFile() in tryLoad()
+		$this->getCache()->save($this->getKey(), new NCallback($this, '_rebuildCallback'));
+	}
+
+
+
+	/**
+	 * @internal
+	 */
+	public function _rebuildCallback(& $dp)
+	{
+		$files = $missing = array();
+		foreach ($this->classes as $class => $info) {
+			if (is_array($info)) {
+				$files[$info['file']]['time'] = $info['time'];
+				$files[$info['file']]['classes'][] = $info['orig'];
+			} else {
+				$missing[$class] = $info;
+			}
+		}
+
+		$this->classes = array();
+		foreach (array_unique($this->scanDirs) as $dir) {
+			foreach ($this->createFileIterator($dir) as $file) {
+				$file = $file->getPathname();
+				if (isset($files[$file]) && $files[$file]['time'] == filemtime($file)) {
+					$classes = $files[$file]['classes'];
+				} else {
+					$classes = $this->scanPhp(file_get_contents($file));
+				}
+
+				foreach ($classes as $class) {
+					$info = & $this->classes[strtolower($class)];
+					if (isset($info['file'])) {
+						$e = new InvalidStateException("Ambiguous class $class resolution; defined in {$info['file']} and in $file.");
+						if (PHP_VERSION_ID < 50300) {
+							NDebugger::_exceptionHandler($e);
+							exit;
+						} else {
+							throw $e;
 						}
 					}
-					return !isset($disallow[$path]);
-				'));
-			$filter(new SplFileInfo($dir));
-		} else {
-			$iterator = new ArrayIterator(array(new SplFileInfo($dir)));
+					$info = array('file' => $file, 'time' => filemtime($file), 'orig' => $class);
+				}
+			}
 		}
 
-		foreach ($iterator as $entry) {
-			$path = $entry->getPathname();
-			if (!isset($this->files[$path]) || $this->files[$path] !== $entry->getMTime()) {
-				$this->scanScript($path);
+		$dp = array(
+			NCache::CONSTS => 'NFramework::REVISION'
+		);
+		$this->classes += $missing;
+		return $this->classes;
+	}
+
+
+
+	/**
+	 * Creates an iterator scaning directory for PHP files, subdirectories and 'netterobots.txt' files.
+	 * @return Iterator
+	 */
+	private function createFileIterator($dir)
+	{
+		if (!is_dir($dir)) {
+			return new ArrayIterator(array(new SplFileInfo($dir)));
+		}
+
+		$ignoreDirs = is_array($this->ignoreDirs) ? $this->ignoreDirs : preg_split('#[,\s]+#', $this->ignoreDirs);
+		$disallow = array();
+		foreach ($ignoreDirs as $item) {
+			if ($item = realpath($item)) {
+				$disallow[$item] = TRUE;
+			}
+		}
+
+		$iterator = NFinder::findFiles(is_array($this->acceptFiles) ? $this->acceptFiles : preg_split('#[,\s]+#', $this->acceptFiles))
+			->filter(create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('disallow'=>&$disallow)).'-1], EXTR_REFS);
+				return !isset($disallow[$file->getPathname()]);
+			'))
+			->from($dir)
+			->exclude($ignoreDirs)
+			->filter($filter = create_function('$dir', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('disallow'=>&$disallow)).'-1], EXTR_REFS);
+				$path = $dir->getPathname();
+				if (is_file("$path/netterobots.txt")) {
+					foreach (file("$path/netterobots.txt") as $s) {
+					if (preg_match(\'#^(?:disallow\\\\s*:)?\\\\s*(\\\\S+)#i\', $s, $matches)) {
+							$disallow[$path . str_replace(\'/\', DIRECTORY_SEPARATOR, rtrim(\'/\' . ltrim($matches[1], \'/\'), \'/\'))] = TRUE;
+						}
+					}
+				}
+				return !isset($disallow[$path]);
+			'));
+
+		$filter(new SplFileInfo($dir));
+		return $iterator;
+	}
+
+
+
+	/**
+	 * @return void
+	 */
+	private function updateFile($file)
+	{
+		foreach ($this->classes as $class => $info) {
+			if (isset($info['file']) && $info['file'] === $file) {
+				unset($this->classes[$class]);
+			}
+		}
+
+		if (is_file($file)) {
+			foreach ($this->scanPhp(file_get_contents($file)) as $class) {
+				$info = & $this->classes[strtolower($class)];
+				if (isset($info['file']) && @filemtime($info['file']) !== $info['time']) { // intentionally ==, file may not exists
+					$this->updateFile($info['file']);
+					$info = & $this->classes[strtolower($class)];
+				}
+				if (isset($info['file'])) {
+					$e = new InvalidStateException("Ambiguous class $class resolution; defined in {$info['file']} and in $file.");
+					if (PHP_VERSION_ID < 50300) {
+						NDebugger::_exceptionHandler($e);
+						exit;
+					} else {
+						throw $e;
+					}
+				}
+				$info = array('file' => $file, 'time' => filemtime($file), 'orig' => $class);
 			}
 		}
 	}
@@ -261,35 +293,29 @@ class NRobotLoader extends NAutoLoader
 
 
 	/**
-	 * Analyse PHP file.
+	 * Searches classes, interfaces and traits in PHP file.
 	 * @param  string
-	 * @return void
+	 * @return array
 	 */
-	private function scanScript($file)
+	private function scanPhp($code)
 	{
 		$T_NAMESPACE = PHP_VERSION_ID < 50300 ? -1 : T_NAMESPACE;
 		$T_NS_SEPARATOR = PHP_VERSION_ID < 50300 ? -1 : T_NS_SEPARATOR;
+		$T_TRAIT = PHP_VERSION_ID < 50400 ? -1 : T_TRAIT;
 
 		$expected = FALSE;
 		$namespace = '';
 		$level = $minLevel = 0;
-		$time = filemtime($file);
-		$s = file_get_contents($file);
+		$classes = array();
 
-		foreach ($this->list as $class => $pair) {
-			if ($pair && $pair[0] === $file) {
-				unset($this->list[$class]);
-			}
-		}
-
-		if ($matches = NStrings::match($s, '#//nette'.'loader=(\S*)#')) {
+		if (preg_match('#//nette'.'loader=(\S*)#', $code, $matches)) {
 			foreach (explode(',', $matches[1]) as $name) {
-				$this->addClass($name, $file, $time);
+				$classes[] = $name;
 			}
-			return;
+			return $classes;
 		}
 
-		foreach (token_get_all($s) as $token) {
+		foreach (@token_get_all($code) as $token) { // intentionally @
 			if (is_array($token)) {
 				switch ($token[0]) {
 				case T_COMMENT:
@@ -307,6 +333,7 @@ class NRobotLoader extends NAutoLoader
 				case $T_NAMESPACE:
 				case T_CLASS:
 				case T_INTERFACE:
+				case $T_TRAIT:
 					$expected = $token[0];
 					$name = '';
 					continue 2;
@@ -320,8 +347,9 @@ class NRobotLoader extends NAutoLoader
 				switch ($expected) {
 				case T_CLASS:
 				case T_INTERFACE:
+				case $T_TRAIT:
 					if ($level === $minLevel) {
-						$this->addClass($namespace . $name, $file, $time);
+						$classes[] = $namespace . $name;
 					}
 					break;
 
@@ -339,6 +367,7 @@ class NRobotLoader extends NAutoLoader
 				$level--;
 			}
 		}
+		return $classes;
 	}
 
 
@@ -348,7 +377,6 @@ class NRobotLoader extends NAutoLoader
 
 
 	/**
-	 * @param  ICacheStorage
 	 * @return NRobotLoader
 	 */
 	public function setCacheStorage(ICacheStorage $storage)
@@ -388,7 +416,7 @@ class NRobotLoader extends NAutoLoader
 	 */
 	protected function getKey()
 	{
-		return "v2|$this->ignoreDirs|$this->acceptFiles|" . implode('|', $this->scanDirs);
+		return array($this->ignoreDirs, $this->acceptFiles, $this->scanDirs);
 	}
 
 }

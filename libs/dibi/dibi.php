@@ -3,12 +3,10 @@
 /**
  * dibi - smart database abstraction layer (http://dibiphp.com)
  *
- * Copyright (c) 2005, 2010 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2005, 2012 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
- *
- * @package    dibi
  */
 
 
@@ -23,21 +21,10 @@ if (version_compare(PHP_VERSION, '5.2.0', '<')) {
 
 
 
-/**
- * Compatibility with Nette
- */
-if (interface_exists('Nette\Diagnostics\IBarPanel')) {
-	class_alias('Nette\Diagnostics\IBarPanel', 'IBarPanel');
-
-} elseif (!interface_exists('IBarPanel')) {
-	interface IBarPanel {}
-}
-
-
-
 require_once dirname(__FILE__) . '/libs/interfaces.php';
 require_once dirname(__FILE__) . '/libs/DibiDateTime.php';
 require_once dirname(__FILE__) . '/libs/DibiObject.php';
+require_once dirname(__FILE__) . '/libs/DibiLiteral.php';
 require_once dirname(__FILE__) . '/libs/DibiHashMap.php';
 require_once dirname(__FILE__) . '/libs/DibiException.php';
 require_once dirname(__FILE__) . '/libs/DibiConnection.php';
@@ -48,20 +35,11 @@ require_once dirname(__FILE__) . '/libs/DibiTranslator.php';
 require_once dirname(__FILE__) . '/libs/DibiDataSource.php';
 require_once dirname(__FILE__) . '/libs/DibiFluent.php';
 require_once dirname(__FILE__) . '/libs/DibiDatabaseInfo.php';
-require_once dirname(__FILE__) . '/libs/DibiProfiler.php';
-
-
-
-/**
- * @deprecated
- */
-class DibiVariable extends DibiDateTime
-{
-	function __construct($val)
-	{
-		parent::__construct($val);
-		trigger_error(__CLASS__ . ' is deprecated; use class DateTime instead.', E_USER_WARNING);
-	}
+require_once dirname(__FILE__) . '/libs/DibiEvent.php';
+require_once dirname(__FILE__) . '/libs/DibiFileLogger.php';
+require_once dirname(__FILE__) . '/libs/DibiFirePhpLogger.php';
+if (interface_exists('Nette\Diagnostics\IBarPanel') || interface_exists('IBarPanel')) {
+	require_once dirname(__FILE__) . '/Nette/DibiNettePanel.php';
 }
 
 
@@ -75,6 +53,7 @@ class DibiVariable extends DibiDateTime
  * store connections info.
  *
  * @author     David Grudl
+ * @package    dibi
  */
 class dibi
 {
@@ -101,8 +80,8 @@ class dibi
 		FIELD_TIME = dibi::TIME;
 
 	/** version */
-	const VERSION = '1.5-rc1',
-		REVISION = '0de9478 released on 2011-04-21';
+	const VERSION = '2.0.1',
+		REVISION = '997f5a9 released on 2012-03-30';
 
 	/** sorting order */
 	const ASC = 'ASC',
@@ -234,18 +213,6 @@ class dibi
 
 
 
-	/**
-	 * Retrieve active connection profiler.
-	 * @return IDibiProfiler
-	 * @throws DibiException
-	 */
-	public static function getProfiler()
-	{
-		return self::getConnection()->getProfiler();
-	}
-
-
-
 	/********************* monostate for active connection ****************d*g**/
 
 
@@ -287,11 +254,7 @@ class dibi
 		return self::getConnection()->test($args);
 	}
 
-	public static function translate($args)
-	{
-		$args = func_get_args();
-		return self::getConnection()->translate($args);
-	}
+
 
 	/**
 	 * Generates and returns SQL query as DibiDataSource - Monostate for DibiConnection::test().
@@ -644,8 +607,8 @@ class dibi
 		} else {
 			if ($sql === NULL) $sql = self::$sql;
 
-			static $keywords1 = 'SELECT|UPDATE|INSERT(?:\s+INTO)?|REPLACE(?:\s+INTO)?|DELETE|FROM|WHERE|HAVING|GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET|SET|VALUES|LEFT\s+JOIN|INNER\s+JOIN|TRUNCATE';
-			static $keywords2 = 'ALL|DISTINCT|DISTINCTROW|AS|USING|ON|AND|OR|IN|IS|NOT|NULL|LIKE|TRUE|FALSE';
+			static $keywords1 = 'SELECT|(?:ON\s+DUPLICATE\s+KEY)?UPDATE|INSERT(?:\s+INTO)?|REPLACE(?:\s+INTO)?|DELETE|CALL|UNION|FROM|WHERE|HAVING|GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET|SET|VALUES|LEFT\s+JOIN|INNER\s+JOIN|TRUNCATE';
+			static $keywords2 = 'ALL|DISTINCT|DISTINCTROW|IGNORE|AS|USING|ON|AND|OR|IN|IS|NOT|NULL|LIKE|RLIKE|REGEXP|TRUE|FALSE';
 
 			// insert new lines
 			$sql = " $sql ";

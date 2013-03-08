@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,17 +12,14 @@
 
 
 
-
-
-
-
 /**
  * Submittable button control.
  *
  * @author     David Grudl
  *
- * @property   mixed $validationScope
  * @property-read bool $submittedBy
+ * @property   mixed $validationScope
+ * @package Nette\Forms\Controls
  */
 class NSubmitButton extends NButton implements ISubmitterControl
 {
@@ -55,11 +52,8 @@ class NSubmitButton extends NButton implements ISubmitterControl
 	 */
 	public function setValue($value)
 	{
-		$this->value = is_scalar($value) && (bool) $value;
-		$form = $this->getForm();
-		if ($this->value || !is_object($form->isSubmitted())) {
-			$this->value = TRUE;
-			$form->setSubmittedBy($this);
+		if ($this->value = $value !== NULL) {
+			$this->getForm()->setSubmittedBy($this);
 		}
 		return $this;
 	}
@@ -116,7 +110,6 @@ class NSubmitButton extends NButton implements ISubmitterControl
 
 	/**
 	 * Submitted validator: has been button pressed?
-	 * @param  ISubmitterControl
 	 * @return bool
 	 */
 	public static function validateSubmitted(ISubmitterControl $control)

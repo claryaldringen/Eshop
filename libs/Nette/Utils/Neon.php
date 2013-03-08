@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Simple parser & generator for Nette Object Notation.
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 class NNeon extends NObject
 {
@@ -27,13 +24,26 @@ class NNeon extends NObject
 
 	/** @var array */
 	private static $patterns = array(
-		'\'[^\'\n]*\'|"(?:\\\\.|[^"\\\\\n])*"', // string
-		'@[a-zA-Z_0-9\\\\]+', // object
-		'[:-](?=\s|$)|[,=[\]{}()]', // symbol
-		'?:#.*', // comment
-		'\n[\t ]*', // new line + indent
-		'[^#"\',:=@[\]{}()<>\x00-\x20!`](?:[^#,:=\]})>\x00-\x1F]+|:(?!\s|$)|(?<!\s)#)*(?<!\s)', // literal / boolean / integer / float
-		'?:[\t ]+', // whitespace
+		'
+			\'[^\'\n]*\' |
+			"(?: \\\\. | [^"\\\\\n] )*"
+		', // string
+		'
+			-(?= \s | $ ) |
+			:(?= [\s,\]})] | $ ) |
+			[,=[\]{}()]
+		', // symbol
+		'?:\#.*', // comment
+		'\n[\t\ ]*', // new line + indent
+		'
+			[^#"\',=[\]{}()\x00-\x20!`]
+			(?:
+				[^,:=\]})(\x00-\x20]+ |
+				:(?! [\s,\]})] | $ ) |
+				[\ \t]+ [^#,:=\]})(\x00-\x20]
+			)*
+		', // literal / boolean / integer / float
+		'?:[\t\ ]+', // whitespace
 	);
 
 	/** @var NTokenizer */
@@ -62,21 +72,29 @@ class NNeon extends NObject
 	{
 		if ($var instanceof DateTime) {
 			return $var->format('Y-m-d H:i:s O');
+
+		} elseif ($var instanceof NNeonEntity) {
+			return self::encode($var->value) . '(' . substr(self::encode($var->attributes), 1, -1) . ')';
 		}
+
 		if (is_object($var)) {
 			$obj = $var; $var = array();
 			foreach ($obj as $k => $v) {
 				$var[$k] = $v;
 			}
 		}
+
 		if (is_array($var)) {
-			$isArray = array_keys($var) === range(0, count($var) - 1);
+			$isList = NValidators::isList($var);
 			$s = '';
 			if ($options & self::BLOCK) {
+				if (count($var) === 0){
+					return "[]";
+				}
 				foreach ($var as $k => $v) {
 					$v = self::encode($v, self::BLOCK);
-					$s .= ($isArray ? '-' : self::encode($k) . ':')
-						. (strpos($v, "\n") === FALSE ? ' ' . $v : "\n\t" . str_replace("\n", "\n\t", $v))
+					$s .= ($isList ? '-' : self::encode($k) . ':')
+						. (NStrings::contains($v, "\n") ? "\n\t" . str_replace("\n", "\n\t", $v) : ' ' . $v)
 						. "\n";
 					continue;
 				}
@@ -84,16 +102,20 @@ class NNeon extends NObject
 
 			} else {
 				foreach ($var as $k => $v) {
-					$s .= ($isArray ? '' : self::encode($k) . ': ') . self::encode($v) . ', ';
+					$s .= ($isList ? '' : self::encode($k) . ': ') . self::encode($v) . ', ';
 				}
-				return ($isArray ? '[' : '{') . substr($s, 0, -2) . ($isArray ? ']' : '}');
+				return ($isList ? '[' : '{') . substr($s, 0, -2) . ($isList ? ']' : '}');
 			}
 
 		} elseif (is_string($var) && !is_numeric($var)
-			&& !preg_match('~[\x00-\x1F]|^\d{4}|^(true|false|yes|no|on|off|null)$~i', $var)
-			&& preg_match('~^' . self::$patterns[5] . '$~', $var)
+			&& !preg_match('~[\x00-\x1F]|^\d{4}|^(true|false|yes|no|on|off|null)\z~i', $var)
+			&& preg_match('~^' . self::$patterns[4] . '\z~x', $var)
 		) {
 			return $var;
+
+		} elseif (is_float($var)) {
+			$var = var_export($var, TRUE);
+			return NStrings::contains($var, '.') ? $var : $var . '.0';
 
 		} else {
 			return json_encode($var);
@@ -113,9 +135,12 @@ class NNeon extends NObject
 			throw new InvalidArgumentException("Argument must be a string, " . gettype($input) . " given.");
 		}
 		if (!self::$tokenizer) {
-			self::$tokenizer = new NTokenizer(self::$patterns, 'mi');
+			self::$tokenizer = new NTokenizer(self::$patterns, 'mix');
 		}
 
+		if (substr($input, 0, 3) === "\xEF\xBB\xBF") { // BOM
+			$input = substr($input, 3);
+		}
 		$input = str_replace("\r", '', $input);
 		self::$tokenizer->tokenize($input);
 
@@ -152,25 +177,20 @@ class NNeon extends NObject
 			$t = $tokens[$n];
 
 			if ($t === ',') { // ArrayEntry separator
-				if (!$hasValue || !$inlineParser) {
+				if ((!$hasKey && !$hasValue) || !$inlineParser) {
 					$this->error();
 				}
-				if ($hasKey) {
-					$result[$key] = $value;
-				} else {
-					$result[] = $value;
-				}
+				$this->addValue($result, $hasKey, $key, $hasValue ? $value : NULL);
 				$hasKey = $hasValue = FALSE;
 
 			} elseif ($t === ':' || $t === '=') { // KeyValuePair separator
 				if ($hasKey || !$hasValue) {
 					$this->error();
 				}
-				if (is_array($value) || (is_object($value) && !method_exists($value, '__toString'))) {
+				if (is_array($value) || is_object($value)) {
 					$this->error('Unacceptable key');
-				} else {
-					$key = (string) $value;
 				}
+				$key = (string) $value;
 				$hasKey = TRUE;
 				$hasValue = FALSE;
 
@@ -183,12 +203,20 @@ class NNeon extends NObject
 
 			} elseif (isset(self::$brackets[$t])) { // Opening bracket [ ( {
 				if ($hasValue) {
-					$this->error();
+					if ($t !== '(') {
+						$this->error();
+					}
+					$n++;
+					$entity = new NNeonEntity;
+					$entity->value = $value;
+					$entity->attributes = $this->parse(NULL, array());
+					$value = $entity;
+				} else {
+					$n++;
+					$value = $this->parse(NULL, array());
 				}
-				$endBracket = self::$brackets[$tokens[$n++]];
 				$hasValue = TRUE;
-				$value = $this->parse(NULL, array());
-				if (!isset($tokens[$n]) || $tokens[$n] !== $endBracket) { // unexpected type of bracket or block-parser
+				if (!isset($tokens[$n]) || $tokens[$n] !== self::$brackets[$t]) { // unexpected type of bracket or block-parser
 					$this->error();
 				}
 
@@ -198,17 +226,10 @@ class NNeon extends NObject
 				}
 				break;
 
-			} elseif ($t[0] === '@') { // Object
-				$object = $t; // TODO
-
 			} elseif ($t[0] === "\n") { // Indent
 				if ($inlineParser) {
-					if ($hasValue) {
-						if ($hasKey) {
-							$result[$key] = $value;
-						} else {
-							$result[] = $value;
-						}
+					if ($hasKey || $hasValue) {
+						$this->addValue($result, $hasKey, $key, $hasValue ? $value : NULL);
 						$hasKey = $hasValue = FALSE;
 					}
 
@@ -227,6 +248,7 @@ class NNeon extends NObject
 							$this->indentTabs = $tokens[$n][1] === "\t";
 						}
 						if (strpos($tokens[$n], $this->indentTabs ? ' ' : "\t")) {
+							$n++;
 							$this->error('Either tabs or spaces may be used as indenting chars, but not both.');
 						}
 					}
@@ -235,10 +257,8 @@ class NNeon extends NObject
 						if ($hasValue || !$hasKey) {
 							$n++;
 							$this->error('Unexpected indentation.');
-						} elseif ($key === NULL) {
-							$result[] = $this->parse($newIndent);
 						} else {
-							$result[$key] = $this->parse($newIndent);
+							$this->addValue($result, $key !== NULL, $key, $this->parse($newIndent));
 						}
 						$newIndent = isset($tokens[$n]) ? strlen($tokens[$n]) - 1 : 0;
 						$hasKey = FALSE;
@@ -248,12 +268,7 @@ class NNeon extends NObject
 							break;
 
 						} elseif ($hasKey) {
-							$value = $hasValue ? $value : NULL;
-							if ($key === NULL) {
-								$result[] = $value;
-							} else {
-								$result[$key] = $value;
-							}
+							$this->addValue($result, $key !== NULL, $key, $hasValue ? $value : NULL);
 							$hasKey = $hasValue = FALSE;
 						}
 					}
@@ -281,7 +296,7 @@ class NNeon extends NObject
 					$value = NULL;
 				} elseif (is_numeric($t)) {
 					$value = $t * 1;
-				} elseif (preg_match('#\d\d\d\d-\d\d?-\d\d?(?:(?:[Tt]| +)\d\d?:\d\d:\d\d(?:\.\d*)? *(?:Z|[-+]\d\d?(?::\d\d)?)?)?$#A', $t)) {
+				} elseif (preg_match('#\d\d\d\d-\d\d?-\d\d?(?:(?:[Tt]| +)\d\d?:\d\d:\d\d(?:\.\d*)? *(?:Z|[-+]\d\d?(?::\d\d)?)?)?\z#A', $t)) {
 					$value = new NDateTime53($t);
 				} else { // literal
 					$value = $t;
@@ -291,14 +306,8 @@ class NNeon extends NObject
 		}
 
 		if ($inlineParser) {
-			if ($hasValue) {
-				if ($hasKey) {
-					$result[$key] = $value;
-				} else {
-					$result[] = $value;
-				}
-			} elseif ($hasKey) {
-				$this->error();
+			if ($hasKey || $hasValue) {
+				$this->addValue($result, $hasKey, $key, $hasValue ? $value : NULL);
 			}
 		} else {
 			if ($hasValue && !$hasKey) { // block items must have "key"
@@ -308,12 +317,7 @@ class NNeon extends NObject
 					$this->error();
 				}
 			} elseif ($hasKey) {
-				$value = $hasValue ? $value : NULL;
-				if ($key === NULL) {
-					$result[] = $value;
-				} else {
-					$result[$key] = $value;
-				}
+				$this->addValue($result, $key !== NULL, $key, $hasValue ? $value : NULL);
 			}
 		}
 		return $result;
@@ -321,9 +325,23 @@ class NNeon extends NObject
 
 
 
+	private function addValue(&$result, $hasKey, $key, $value)
+	{
+		if ($hasKey) {
+			if ($result && array_key_exists($key, $result)) {
+				$this->error("Duplicated key '$key'");
+			}
+			$result[$key] = $value;
+		} else {
+			$result[] = $value;
+		}
+	}
+
+
+
 	private function cbString($m)
 	{
-		static $mapping = array('t' => "\t", 'n' => "\n", '"' => '"', '\\' => '\\',  '/' => '/', '_' => "\xc2\xa0");
+		static $mapping = array('t' => "\t", 'n' => "\n", 'r' => "\r", 'f' => "\x0C", 'b' => "\x08", '"' => '"', '\\' => '\\',  '/' => '/', '_' => "\xc2\xa0");
 		$sq = $m[0];
 		if (isset($mapping[$sq[1]])) {
 			return $mapping[$sq[1]];
@@ -352,7 +370,20 @@ class NNeon extends NObject
 
 
 /**
+ * Representation of 'foo(bar=1)' literal
+ * @package Nette\Utils
+ */
+class NNeonEntity extends stdClass
+{
+	public $value;
+	public $attributes;
+}
+
+
+
+/**
  * The exception that indicates error of NEON decoding.
+ * @package Nette\Utils
  */
 class NNeonException extends Exception
 {

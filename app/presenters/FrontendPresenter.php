@@ -29,7 +29,7 @@ class FrontendPresenter extends BasePresenter
 		}
 		if(!$this->mena || !$this->stat)
 		{
-			$config = $this->context->params->local;
+			$config = $this->context->params['local'];
 			$domain = explode('.',$_SERVER['HTTP_HOST']);
 			$dindex = count($domain)-1;
 			$local = explode(';',$config[$domain[$dindex]]);
@@ -517,7 +517,7 @@ class FrontendPresenter extends BasePresenter
 		parent::beforeRender();
 		$model = $this->getInstanceOf('ProductModel');
 		if($this->user->isLoggedIn())$this->template->showprices = TRUE;
-		else $this->template->showprices = $this->context->params->frontend->showprices;
+		else $this->template->showprices = $this->context->params['frontend']['showprices'];
 		$this->template->news = $model->getNewProducts(5,$this->lang);
 		$this->template->bests = $model->getBestsellers(5,$this->lang);
 		$this->template->recomended = $model->getRecomended(5,$this->lang);

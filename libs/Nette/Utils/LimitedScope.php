@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Limited scope for PHP code evaluation and script including.
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 final class NLimitedScope
 {
@@ -59,13 +56,16 @@ final class NLimitedScope
 	/**
 	 * Includes script in a limited scope.
 	 * @param  string  file to include
-	 * @param  array   local variables
+	 * @param  array   local variables or TRUE meaning include once
 	 * @return mixed   the return value of the included file
 	 */
 	public static function load(/*$file, array $vars = NULL*/)
 	{
 		if (func_num_args() > 1) {
 			self::$vars = func_get_arg(1);
+			if (self::$vars === TRUE) {
+				return include_once func_get_arg(0);
+			}
 			extract(self::$vars);
 		}
 		return include func_get_arg(0);

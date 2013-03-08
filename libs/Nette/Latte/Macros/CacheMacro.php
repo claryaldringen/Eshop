@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Macro {cache} ... {/cache}
  *
  * @author     David Grudl
+ * @package Nette\Latte\Macros
  */
 class NCacheMacro extends NObject implements IMacro
 {
@@ -54,13 +51,13 @@ class NCacheMacro extends NObject implements IMacro
 
 	/**
 	 * New node is found.
-	 * @return bool|string
+	 * @return bool
 	 */
 	public function nodeOpened(NMacroNode $node)
 	{
 		$this->used = TRUE;
 		$node->isEmpty = FALSE;
-		return NPhpWriter::using($node)
+		$node->openingCode = NPhpWriter::using($node)
 			->write('<?php if (NCacheMacro::createCache($netteCacheStorage, %var, $_g->caches, %node.array?)) { ?>',
 				NStrings::random()
 			);
@@ -70,11 +67,11 @@ class NCacheMacro extends NObject implements IMacro
 
 	/**
 	 * Node is closed.
-	 * @return string
+	 * @return void
 	 */
 	public function nodeClosed(NMacroNode $node)
 	{
-		return '<?php $_l->tmp = array_pop($_g->caches); if (!$_l->tmp instanceof stdClass) $_l->tmp->end(); } ?>';
+		$node->closingCode = '<?php $_l->tmp = array_pop($_g->caches); if (!$_l->tmp instanceof stdClass) $_l->tmp->end(); } ?>';
 	}
 
 
@@ -84,10 +81,9 @@ class NCacheMacro extends NObject implements IMacro
 
 
 	/**
-	 * @param  ITemplate
 	 * @return void
 	 */
-	public static function initRuntime($template, $global)
+	public static function initRuntime(NFileTemplate $template, stdClass $global)
 	{
 		if (!empty($global->caches)) {
 			end($global->caches)->dependencies[NCache::FILES][] = $template->getFile();
@@ -100,15 +96,15 @@ class NCacheMacro extends NObject implements IMacro
 	 * Starts the output cache. Returns NCachingHelper object if buffering was started.
 	 * @param  ICacheStorage
 	 * @param  string
-	 * @param  array of NCachingHelper
+	 * @param  NCachingHelper[]
 	 * @param  array
 	 * @return NCachingHelper
 	 */
-	public static function createCache(ICacheStorage $cacheStorage, $key, & $parents, $args = NULL)
+	public static function createCache(ICacheStorage $cacheStorage, $key, & $parents, array $args = NULL)
 	{
 		if ($args) {
 			if (array_key_exists('if', $args) && !$args['if']) {
-				return $parents[] = (object) NULL;
+				return $parents[] = new stdClass;
 			}
 			$key = array_merge(array($key), array_intersect_key($args, range(0, count($args))));
 		}
@@ -118,9 +114,12 @@ class NCacheMacro extends NObject implements IMacro
 
 		$cache = new NCache($cacheStorage, 'Nette.Templating.Cache');
 		if ($helper = $cache->start($key)) {
+			if (isset($args['expire'])) {
+				$args['expiration'] = $args['expire']; // back compatibility
+			}
 			$helper->dependencies = array(
 				NCache::TAGS => isset($args['tags']) ? $args['tags'] : NULL,
-				NCache::EXPIRATION => isset($args['expire']) ? $args['expire'] : '+ 7 days',
+				NCache::EXPIRATION => isset($args['expiration']) ? $args['expiration'] : '+ 7 days',
 			);
 			$parents[] = $helper;
 		}

@@ -95,7 +95,6 @@ class NConfigIniAdapter extends NObject implements IConfigAdapter
 
 	/**
 	 * Generates configuration in INI format.
-	 * @param  array
 	 * @return string
 	 */
 	public function dump(array $data)

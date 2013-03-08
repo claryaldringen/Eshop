@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Debug panel for NDatabase.
  *
  * @author     David Grudl
+ * @package Nette\Database\Diagnostics
  */
 class NDatabasePanel extends NObject implements IBarPanel
 {
@@ -27,31 +24,19 @@ class NDatabasePanel extends NObject implements IBarPanel
 	static public $maxLength = 1000;
 
 	/** @var int logged time */
-	public $totalTime = 0;
+	private $totalTime = 0;
 
 	/** @var array */
-	public $queries = array();
+	private $queries = array();
 
 	/** @var string */
 	public $name;
 
-	/** @var bool explain queries? */
+	/** @var bool|string explain queries? */
 	public $explain = TRUE;
 
 	/** @var bool */
 	public $disabled = FALSE;
-
-
-
-	public static function initialize(NConnection $connection)
-	{
-		if (!NDebugger::$productionMode) {
-			$panel = new self;
-			$connection->onQuery[] = callback($panel, 'logQuery');
-			NDebugger::$bar->addPanel($panel);
-			NDebugger::$blueScreen->addPanel(callback($panel, 'renderException'), __CLASS__);
-		}
-	}
 
 
 
@@ -61,26 +46,35 @@ class NDatabasePanel extends NObject implements IBarPanel
 			return;
 		}
 		$source = NULL;
-		foreach (debug_backtrace(FALSE) as $row) {
+		foreach (PHP_VERSION_ID < 50205 ? debug_backtrace() :debug_backtrace(FALSE) as $row) {
 			if (isset($row['file']) && is_file($row['file']) && strpos($row['file'], NETTE_DIR . DIRECTORY_SEPARATOR) !== 0) {
+				if (isset($row['function']) && strpos($row['function'], 'call_user_func') === 0) continue;
+				if (isset($row['class']) && is_subclass_of($row['class'], '\\Nette\\Database\\Connection')) continue;
 				$source = array($row['file'], (int) $row['line']);
 				break;
 			}
 		}
-		$this->totalTime += $result->time;
-		$this->queries[] = array($result->queryString, $params, $result->time, $result->rowCount(), $result->getConnection(), $source);
+		$this->totalTime += $result->getTime();
+		$this->queries[] = array($result->queryString, $params, $result->getTime(), $result->rowCount(), $result->getConnection(), $source);
 	}
 
 
 
-	public function renderException($e)
+	public static function renderException($e)
 	{
-		if ($e instanceof PDOException && isset($e->queryString)) {
-			return array(
-				'tab' => 'SQL',
-				'panel' => NConnection::highlightSql($e->queryString),
-			);
+		if (!$e instanceof PDOException) {
+			return;
 		}
+		if (isset($e->queryString)) {
+			$sql = $e->queryString;
+
+		} elseif ($item = NDebugHelpers::findTrace($e->getTrace(), 'PDO::prepare')) {
+			$sql = $item['args'][0];
+		}
+		return isset($sql) ? array(
+			'tab' => 'SQL',
+			'panel' => NDatabaseHelpers::dumpSql($sql),
+		) : NULL;
 	}
 
 
@@ -89,7 +83,7 @@ class NDatabasePanel extends NObject implements IBarPanel
 	{
 		return '<span title="Nette\\Database ' . htmlSpecialChars($this->name) . '">'
 			. '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAEYSURBVBgZBcHPio5hGAfg6/2+R980k6wmJgsJ5U/ZOAqbSc2GnXOwUg7BESgLUeIQ1GSjLFnMwsKGGg1qxJRmPM97/1zXFAAAAEADdlfZzr26miup2svnelq7d2aYgt3rebl585wN6+K3I1/9fJe7O/uIePP2SypJkiRJ0vMhr55FLCA3zgIAOK9uQ4MS361ZOSX+OrTvkgINSjS/HIvhjxNNFGgQsbSmabohKDNoUGLohsls6BaiQIMSs2FYmnXdUsygQYmumy3Nhi6igwalDEOJEjPKP7CA2aFNK8Bkyy3fdNCg7r9/fW3jgpVJbDmy5+PB2IYp4MXFelQ7izPrhkPHB+P5/PjhD5gCgCenx+VR/dODEwD+A3T7nqbxwf1HAAAAAElFTkSuQmCC" />'
-			. count($this->queries) . ' queries'
+			. count($this->queries) . ' ' . (count($this->queries) === 1 ? 'query' : 'queries')
 			. ($this->totalTime ? ' / ' . sprintf('%0.1f', $this->totalTime * 1000) . 'ms' : '')
 			. '</span>';
 	}
@@ -105,9 +99,10 @@ class NDatabasePanel extends NObject implements IBarPanel
 			list($sql, $params, $time, $rows, $connection, $source) = $query;
 
 			$explain = NULL; // EXPLAIN is called here to work SELECT FOUND_ROWS()
-			if ($this->explain && preg_match('#\s*SELECT\s#iA', $sql)) {
+			if ($this->explain && preg_match('#\s*\(?\s*SELECT\s#iA', $sql)) {
 				try {
-					$explain = $connection->queryArgs('EXPLAIN ' . $sql, $params)->fetchAll();
+					$cmd = is_string($this->explain) ? $this->explain : 'EXPLAIN';
+					$explain = $connection->queryArgs("$cmd $sql", $params)->fetchAll();
 				} catch (PDOException $e) {}
 			}
 
@@ -118,7 +113,7 @@ class NDatabasePanel extends NObject implements IBarPanel
 				$s .= "<br /><a href='#' class='nette-toggler' rel='#nette-DbConnectionPanel-row-$counter'>explain&nbsp;&#x25ba;</a>";
 			}
 
-			$s .= '</td><td class="nette-DbConnectionPanel-sql">' . NConnection::highlightSql(NStrings::truncate($sql, self::$maxLength));
+			$s .= '</td><td class="nette-DbConnectionPanel-sql">' . NDatabaseHelpers::dumpSql(self::$maxLength ? NStrings::truncate($sql, self::$maxLength) : $sql);
 			if ($explain) {
 				$s .= "<table id='nette-DbConnectionPanel-row-$counter' class='nette-collapsed'><tr>";
 				foreach ($explain[0] as $col => $foo) {
@@ -148,8 +143,7 @@ class NDatabasePanel extends NObject implements IBarPanel
 
 		return empty($this->queries) ? '' :
 			'<style> #nette-debug td.nette-DbConnectionPanel-sql { background: white !important }
-			#nette-debug .nette-DbConnectionPanel-source { color: #BBB !important }
-			#nette-debug nette-DbConnectionPanel tr table { margin: 8px 0; max-height: 150px; overflow:auto } </style>
+			#nette-debug .nette-DbConnectionPanel-source { color: #BBB !important } </style>
 			<h1>Queries: ' . count($this->queries) . ($this->totalTime ? ', time: ' . sprintf('%0.3f', $this->totalTime * 1000) . ' ms' : '') . '</h1>
 			<div class="nette-inner nette-DbConnectionPanel">
 			<table>

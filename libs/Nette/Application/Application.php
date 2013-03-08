@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,16 @@
 
 
 
-
-
-
-
 /**
  * Front Controller.
  *
  * @author     David Grudl
+ *
+ * @property-read array $requests
+ * @property-read IPresenter $presenter
+ * @property-read IRouter $router
+ * @property-read IPresenterFactory $presenterFactory
+ * @package Nette\Application
  */
 class NApplication extends NObject
 {
@@ -38,32 +40,44 @@ class NApplication extends NObject
 	/** @var array of function(Application $sender, Exception $e = NULL); Occurs before the application shuts down */
 	public $onShutdown;
 
-	/** @var array of function(Application $sender, Request $request); Occurs when a new request is ready for dispatch */
+	/** @var array of function(Application $sender, Request $request); Occurs when a new request is received */
 	public $onRequest;
 
-	/** @var array of function(Application $sender, IResponse $response); Occurs when a new response is received */
+	/** @var array of function(Application $sender, IResponse $response); Occurs when a new response is ready for dispatch */
 	public $onResponse;
 
 	/** @var array of function(Application $sender, Exception $e); Occurs when an unhandled exception occurs in the application */
 	public $onError;
 
-	/** @var array of string */
-	public $allowedMethods = array('GET', 'POST', 'HEAD', 'PUT', 'DELETE');
+	/** @deprecated */
+	public $allowedMethods;
 
-	/** @var array of NPresenterRequest */
+	/** @var NPresenterRequest[] */
 	private $requests = array();
 
 	/** @var IPresenter */
 	private $presenter;
 
-	/** @var IDiContainer */
-	private $context;
+	/** @var IHttpRequest */
+	private $httpRequest;
+
+	/** @var IHttpResponse */
+	private $httpResponse;
+
+	/** @var IPresenterFactory */
+	private $presenterFactory;
+
+	/** @var IRouter */
+	private $router;
 
 
 
-	public function __construct(IDiContainer $context)
+	public function __construct(IPresenterFactory $presenterFactory, IRouter $router, IHttpRequest $httpRequest, IHttpResponse $httpResponse)
 	{
-		$this->context = $context;
+		$this->httpRequest = $httpRequest;
+		$this->httpResponse = $httpResponse;
+		$this->presenterFactory = $presenterFactory;
+		$this->router = $router;
 	}
 
 
@@ -74,21 +88,6 @@ class NApplication extends NObject
 	 */
 	public function run()
 	{
-		$httpRequest = $this->context->httpRequest;
-		$httpResponse = $this->context->httpResponse;
-
-		// check HTTP method
-		if ($this->allowedMethods) {
-			$method = $httpRequest->getMethod();
-			if (!in_array($method, $this->allowedMethods, TRUE)) {
-				$httpResponse->setCode(IHttpResponse::S501_NOT_IMPLEMENTED);
-				$httpResponse->setHeader('Allow', implode(',', $this->allowedMethods));
-				echo '<h1>Method ' . htmlSpecialChars($method) . ' is not implemented</h1>';
-				return;
-			}
-		}
-
-		// dispatching
 		$request = NULL;
 		$repeatedError = FALSE;
 		do {
@@ -100,13 +99,7 @@ class NApplication extends NObject
 				if (!$request) {
 					$this->onStartup($this);
 
-					// routing
-					$router = $this->getRouter();
-
-					// enable routing debugger
-					NRoutingDebugger::initialize($this, $httpRequest);
-
-					$request = $router->match($httpRequest);
+					$request = $this->router->match($this->httpRequest);
 					if (!$request instanceof NPresenterRequest) {
 						$request = NULL;
 						throw new NBadRequestException('No route for HTTP request.');
@@ -123,18 +116,20 @@ class NApplication extends NObject
 				// Instantiate presenter
 				$presenterName = $request->getPresenterName();
 				try {
-					$this->presenter = $this->getPresenterFactory()->createPresenter($presenterName);
+					$this->presenter = $this->presenterFactory->createPresenter($presenterName);
 				} catch (NInvalidPresenterException $e) {
 					throw new NBadRequestException($e->getMessage(), 404, $e);
 				}
 
-				$this->getPresenterFactory()->getPresenterClass($presenterName);
+				$this->presenterFactory->getPresenterClass($presenterName);
 				$request->setPresenterName($presenterName);
 				$request->freeze();
 
 				// Execute presenter
 				$response = $this->presenter->run($request);
-				$this->onResponse($this, $response);
+				if ($response) {
+					$this->onResponse($this, $response);
+				}
 
 				// Send response
 				if ($response instanceof NForwardResponse) {
@@ -142,7 +137,7 @@ class NApplication extends NObject
 					continue;
 
 				} elseif ($response instanceof IPresenterResponse) {
-					$response->send($httpRequest, $httpResponse);
+					$response->send($this->httpRequest, $this->httpResponse);
 				}
 				break;
 
@@ -159,8 +154,8 @@ class NApplication extends NObject
 					$e = new NApplicationException('An error occurred while executing error-presenter', 0, $e);
 				}
 
-				if (!$httpResponse->isSent()) {
-					$httpResponse->setCode($e instanceof NBadRequestException ? $e->getCode() : 500);
+				if (!$this->httpResponse->isSent()) {
+					$this->httpResponse->setCode($e instanceof NBadRequestException ? $e->getCode() : 500);
 				}
 
 				if (!$repeatedError && $this->errorPresenter) {
@@ -200,7 +195,7 @@ class NApplication extends NObject
 
 	/**
 	 * Returns all processed requests.
-	 * @return array of Request
+	 * @return NPresenterRequest[]
 	 */
 	final public function getRequests()
 	{
@@ -225,23 +220,12 @@ class NApplication extends NObject
 
 
 	/**
-	 * Gets the context.
-	 * @return IDiContainer
-	 */
-	final public function getContext()
-	{
-		return $this->context;
-	}
-
-
-
-	/**
 	 * Returns router.
 	 * @return IRouter
 	 */
 	public function getRouter()
 	{
-		return $this->context->router;
+		return $this->router;
 	}
 
 
@@ -252,7 +236,7 @@ class NApplication extends NObject
 	 */
 	public function getPresenterFactory()
 	{
-		return $this->context->presenterFactory;
+		return $this->presenterFactory;
 	}
 
 
@@ -261,39 +245,16 @@ class NApplication extends NObject
 
 
 
-	/**
-	 * Stores current request to session.
-	 * @param  mixed  optional expiration time
-	 * @return string key
-	 */
-	public function storeRequest($expiration = '+ 10 minutes')
+	/** @deprecated */
+	function storeRequest($expiration = '+ 10 minutes')
 	{
-		$session = $this->context->session->getSection('Nette.Application/requests');
-		do {
-			$key = NStrings::random(5);
-		} while (isset($session[$key]));
-
-		$session[$key] = end($this->requests);
-		$session->setExpiration($expiration, $key);
-		return $key;
+		return $this->presenter->storeRequest($expiration);
 	}
 
-
-
-	/**
-	 * Restores current request to session.
-	 * @param  string key
-	 * @return void
-	 */
-	public function restoreRequest($key)
+	/** @deprecated */
+	function restoreRequest($key)
 	{
-		$session = $this->context->session->getSection('Nette.Application/requests');
-		if (isset($session[$key])) {
-			$request = clone $session[$key];
-			unset($session[$key]);
-			$request->setFlag(NPresenterRequest::RESTORED, TRUE);
-			$this->presenter->sendResponse(new NForwardResponse($request));
-		}
+		return $this->presenter->restoreRequest($key);
 	}
 
 }

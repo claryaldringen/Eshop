@@ -43,6 +43,8 @@ interface IReflection
 	 * @param  string  source table
 	 * @param  string  referencing key
 	 * @return array   array(referenced table, referenced column)
+	 * @throws NMissingReferenceException
+	 * @throws NAmbiguousReferenceKeyException
 	 */
 	function getHasManyReference($table, $key);
 
@@ -55,6 +57,7 @@ interface IReflection
 	 * @param  string  source table
 	 * @param  string  referencing key
 	 * @return array   array(referenced table, referencing column)
+	 * @throws NMissingReferenceException
 	 */
 	function getBelongsToReference($table, $key);
 

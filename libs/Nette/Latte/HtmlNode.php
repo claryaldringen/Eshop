@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework.
  *
- * Copyright (c) 2004, 2010 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * This source file is subject to the "Nette license", and/or
  * GPL license. For more information please see http://nette.org
@@ -12,15 +12,11 @@
 
 
 
-
-
-
-
 /**
  * HTML element node.
  *
  * @author     David Grudl
- * @internal
+ * @package Nette\Latte
  */
 class NHtmlNode extends NObject
 {
@@ -33,8 +29,14 @@ class NHtmlNode extends NObject
 	/** @var array */
 	public $attrs = array();
 
+	/** @var array */
+	public $macroAttrs = array();
+
 	/** @var bool */
 	public $closing = FALSE;
+
+	/** @var string */
+	public $attrCode;
 
 	/** @var int */
 	public $offset;
@@ -44,7 +46,6 @@ class NHtmlNode extends NObject
 	public function __construct($name)
 	{
 		$this->name = $name;
-		$this->isEmpty = isset(NHtml::$emptyElements[strtolower($this->name)]);
 	}
 
 }

@@ -1,12 +1,12 @@
 <?php
 
 class OrdersPresenter extends BasePresenter{
-		
+
 	/** @persistent int*/
 	public $orderId;
 	private $sort = 'O.id DESC';
 	private $ajax = false;
-	
+
 	private function createComponentNForm($name,$id)
 	{
 		$pole = array('prijato'=>'Přijato','pripraveno'=>'Připraveno','odeslano'=>'Odesláno','vyrizeno'=>'Vyřízeno');
@@ -21,20 +21,20 @@ class OrdersPresenter extends BasePresenter{
 		$form->onSuccess[] = array($this,'formSubmited');
 		return $form;
 	}
-	
+
 	public function formSubmited(NAppForm $form)
 	{
 		$vals = $form->getValues();
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->setStav($vals['stav'],$vals['id']);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentDiffForm()
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$items = $model->getItemsInOrder($this->orderId,$this->lang);
-		
+
 		$form = new NAppForm($this,'diffForm');
 		$form->addHidden('order')->setValue($this->orderId);
 		foreach($items as $item)
@@ -43,17 +43,17 @@ class OrdersPresenter extends BasePresenter{
 		}
 		$form->addSubmit('ok','Vytvořit novou objednávku z vybraných položek');
 		$form->onSuccess[] = array($this,'diffFormSubmited');
-		return $form;	
+		return $form;
 	}
-	
+
 	public function diffFormSubmited(NAppForm $form)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->createOrder($form->getValues());
 		$this->orderId = 0;
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentStavNForm()
 	{
 		$model = $this->getInstanceOf('OrdersModel');
@@ -71,12 +71,12 @@ class OrdersPresenter extends BasePresenter{
 		$form->onSuccess[] = array($this,'stavNFormSubmited');
 		return $form;
 	}
-	
+
 	public function stavNFormSubmited(NAppForm $form)
 	{
-		$this->redirect('this',(array)$form->getValues());	
+		$this->redirect('this',(array)$form->getValues());
 	}
-	
+
 	public function actionDefault($stav = 'prijato',$month=0,$year=0)
 	{
 		if(!$this->isAjax() || $this->ajax)
@@ -95,27 +95,27 @@ class OrdersPresenter extends BasePresenter{
 		  }
 		}
 	}
-	
+
 	public function renderSpecial($id)
 	{
 		$model = $this->getInstanceOf('ProductModel');
 		$this->template->specials = $model->getSpecialFromOrder($id, $this->lang);
 	}
-	
+
 	public function actionCheque($id)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$this->template->order = $model->getOrder($id);
-		$this->template->owner = $this->context->params->owner;
+		$this->template->owner = $this->context->params['owner'];
 	}
-	
+
 	public function handleStorno($id)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->storno($id);
 		$this->redirect('this');
 	}
-	
+
 	public function handleShowItem($itemid)
 	{
 	  $model = $this->getInstanceOf('ProductModel');
@@ -128,13 +128,13 @@ class OrdersPresenter extends BasePresenter{
 	  }
 	  die(json_encode(array('src'=>$src)));
 	}
-	
+
 	public function handleFaktura($id)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->getInvoice($id,$this->lang);
 	}
-	
+
 	public function handleMerge($id,$id2)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
@@ -144,16 +144,16 @@ class OrdersPresenter extends BasePresenter{
 			$this->flashMessage('Tyto objednávky nemohou být sloučeny.');
 			throw $e;
 		}
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function handleShowDialog($id)
 	{
 		$this->orderId = $id;
 		$this->template->showDialog = true;
 		$this->invalidateControl('dialog');
 	}
-	
+
 	public function handleSetSleva($id,$id2)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
@@ -167,14 +167,14 @@ class OrdersPresenter extends BasePresenter{
 		$model->setCount($id,$id2);
 		$this->redirect('this');
 	}
-	
+
 	public function handleDelete($id)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->deleteItem($id);
 		$this->redirect('this');
 	}
-	
+
 	public function handleSort($sort)
 	{
 		$this->sort = $sort;
@@ -182,11 +182,11 @@ class OrdersPresenter extends BasePresenter{
 		if($this->isAjax())$this->invalidateControl('table');
 		else $this->redirect('this',array('sort'=>$sort));
 	}
-	
+
 	public function handleSetPrice($id,$id2)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
 		$model->setPrice($id,$id2);
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
 }

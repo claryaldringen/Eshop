@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,13 +12,10 @@
 
 
 
-
-
-
-
 /**
  * The exception that is thrown when user attempts to terminate the current presenter or application.
  * This is special "silent exception" with no error message or code.
+ * @package Nette\Application
  */
 class NAbortException extends Exception
 {
@@ -28,6 +25,7 @@ class NAbortException extends Exception
 
 /**
  * Application fatal error.
+ * @package Nette\Application
  */
 class NApplicationException extends Exception
 {
@@ -46,6 +44,7 @@ class NApplicationException extends Exception
 
 /**
  * The exception that is thrown when a presenter cannot be loaded.
+ * @package Nette\Application
  */
 class NInvalidPresenterException extends Exception
 {
@@ -55,6 +54,7 @@ class NInvalidPresenterException extends Exception
 
 /**
  * Bad HTTP / presenter request exception.
+ * @package Nette\Application
  */
 class NBadRequestException extends Exception
 {
@@ -82,6 +82,7 @@ class NBadRequestException extends Exception
 
 /**
  * Forbidden request exception - access denied.
+ * @package Nette\Application
  */
 class NForbiddenRequestException extends NBadRequestException
 {

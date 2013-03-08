@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,14 @@
 
 
 
-
-
-
-
 /**
  * Implements the cache for a application.
  *
  * @author     David Grudl
+ *
+ * @property-read ICacheStorage $storage
+ * @property-read string $namespace
+ * @package Nette\Caching
  */
 class NCache extends NObject implements ArrayAccess
 {
@@ -44,10 +44,10 @@ class NCache extends NObject implements ArrayAccess
 	/** @var string */
 	private $namespace;
 
-	/** @var string  last query cache */
+	/** @var string  last query cache used by offsetGet() */
 	private $key;
 
-	/** @var mixed  last query cache */
+	/** @var mixed  last query cache used by offsetGet()  */
 	private $data;
 
 
@@ -96,30 +96,18 @@ class NCache extends NObject implements ArrayAccess
 
 
 	/**
-	 * Discards the internal cache.
-	 * @return void
-	 */
-	public function release()
-	{
-		$this->key = $this->data = NULL;
-	}
-
-
-
-	/**
-	 * Retrieves the specified item from the cache or returns NULL if the key is not found.
+	 * Reads the specified item from the cache or generate it.
 	 * @param  mixed key
+	 * @param  callable
 	 * @return mixed|NULL
 	 */
-	public function load($key)
+	public function load($key, $fallback = NULL)
 	{
-		$key = is_scalar($key) ? (string) $key : serialize($key);
-		if ($this->key === $key) {
-			return $this->data;
+		$data = $this->storage->read($this->generateKey($key));
+		if ($data === NULL && $fallback) {
+			return $this->save($key, new NCallback($fallback));
 		}
-		$this->key = $key;
-		$this->data = $this->storage->read($this->namespace . md5($key));
-		return $this->data;
+		return $data;
 	}
 
 
@@ -141,10 +129,32 @@ class NCache extends NObject implements ArrayAccess
 	 * @return mixed  value itself
 	 * @throws InvalidArgumentException
 	 */
-	public function save($key, $data, array $dp = NULL)
+	public function save($key, $data, array $dependencies = NULL)
 	{
-		$this->key = is_scalar($key) ? (string) $key : serialize($key);
-		$key = $this->namespace . md5($this->key);
+		$this->release();
+		$key = $this->generateKey($key);
+
+		if ($data instanceof NCallback || $data instanceof Closure) {
+			$this->storage->lock($key);
+			$data = NCallback::create($data)->invokeArgs(array(&$dependencies));
+		}
+
+		if ($data === NULL) {
+			$this->storage->remove($key);
+		} else {
+			$this->storage->write($key, $data, $this->completeDependencies($dependencies, $data));
+			return $data;
+		}
+	}
+
+
+
+	private function completeDependencies($dp, $data)
+	{
+		if (is_object($data)) {
+			$dp[self::CALLBACKS][] = array(array(__CLASS__, 'checkSerializationVersion'), get_class($data),
+				NClassReflection::from($data)->getAnnotation('serializationVersion'));
+		}
 
 		// convert expire into relative amount of seconds
 		if (isset($dp[NCache::EXPIRATION])) {
@@ -154,7 +164,7 @@ class NCache extends NObject implements ArrayAccess
 		// convert FILES into CALLBACKS
 		if (isset($dp[self::FILES])) {
 			//clearstatcache();
-			foreach ((array) $dp[self::FILES] as $item) {
+			foreach (array_unique((array) $dp[self::FILES]) as $item) {
 				$dp[self::CALLBACKS][] = array(array(__CLASS__, 'checkFile'), $item, @filemtime($item)); // @ - stat may fail
 			}
 			unset($dp[self::FILES]);
@@ -162,38 +172,33 @@ class NCache extends NObject implements ArrayAccess
 
 		// add namespaces to items
 		if (isset($dp[self::ITEMS])) {
-			$dp[self::ITEMS] = (array) $dp[self::ITEMS];
-			foreach ($dp[self::ITEMS] as $k => $item) {
-				$dp[self::ITEMS][$k] = $this->namespace . md5(is_scalar($item) ? $item : serialize($item));
-			}
+			$dp[self::ITEMS] = array_unique(array_map(array($this, 'generateKey'), (array) $dp[self::ITEMS]));
 		}
 
 		// convert CONSTS into CALLBACKS
 		if (isset($dp[self::CONSTS])) {
-			foreach ((array) $dp[self::CONSTS] as $item) {
+			foreach (array_unique((array) $dp[self::CONSTS]) as $item) {
 				$dp[self::CALLBACKS][] = array(array(__CLASS__, 'checkConst'), $item, constant($item));
 			}
 			unset($dp[self::CONSTS]);
 		}
 
-		if ($data instanceof NCallback || $data instanceof Closure) {
-			NCriticalSection::enter();
-			$data = $data->__invoke();
-			NCriticalSection::leave();
+		if (!is_array($dp)) {
+			$dp = array();
 		}
+		return $dp;
+	}
 
-		if (is_object($data)) {
-			$dp[self::CALLBACKS][] = array(array(__CLASS__, 'checkSerializationVersion'), get_class($data),
-				NClassReflection::from($data)->getAnnotation('serializationVersion'));
-		}
 
-		$this->data = $data;
-		if ($data === NULL) {
-			$this->storage->remove($key);
-		} else {
-			$this->storage->write($key, $data, (array) $dp);
-		}
-		return $data;
+
+	/**
+	 * Removes item from the cache.
+	 * @param  mixed  key
+	 * @return void
+	 */
+	public function remove($key)
+	{
+		$this->save($key, NULL);
 	}
 
 
@@ -204,14 +209,12 @@ class NCache extends NObject implements ArrayAccess
 	 * - NCache::PRIORITY => (int) priority
 	 * - NCache::TAGS => (array) tags
 	 * - NCache::ALL => TRUE
-	 *
-	 * @param  array
 	 * @return void
 	 */
-	public function clean(array $conds = NULL)
+	public function clean(array $conditions = NULL)
 	{
 		$this->release();
-		$this->storage->clean((array) $conds);
+		$this->storage->clean((array) $conditions);
 	}
 
 
@@ -224,12 +227,31 @@ class NCache extends NObject implements ArrayAccess
 	public function call($function)
 	{
 		$key = func_get_args();
-		if ($this->load($key) === NULL) {
+		return $this->load($key, create_function('', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('function'=>$function,'key'=> $key)).'-1], EXTR_REFS);
 			array_shift($key);
-			return $this->save($this->key, call_user_func_array($function, $key));
-		} else {
-			return $this->data;
-		}
+			return NCallback::create($function)->invokeArgs($key);
+		'));
+	}
+
+
+
+	/**
+	 * Caches results of function/method calls.
+	 * @param  mixed
+	 * @param  array  dependencies
+	 * @return NClosure
+	 */
+	public function wrap($function, array $dependencies = NULL)
+	{
+		$cache = $this;
+		return create_function('', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('cache'=>$cache,'function'=> $function,'dependencies'=> $dependencies)).'-1], EXTR_REFS);
+			$key = array($function, func_get_args());
+			$data = $cache->load($key);
+			if ($data === NULL) {
+				$data = $cache->save($key, NCallback::create($function)->invokeArgs($key[1]), $dependencies);
+			}
+			return $data;
+		');
 	}
 
 
@@ -241,11 +263,24 @@ class NCache extends NObject implements ArrayAccess
 	 */
 	public function start($key)
 	{
-		if ($this->offsetGet($key) === NULL) {
+		$data = $this->load($key);
+		if ($data === NULL) {
 			return new NCachingHelper($this, $key);
-		} else {
-			echo $this->data;
 		}
+		echo $data;
+	}
+
+
+
+	/**
+	 * Generates internal cache key.
+	 *
+	 * @param  string
+	 * @return string
+	 */
+	protected function generateKey($key)
+	{
+		return $this->namespace . md5(is_scalar($key) ? $key : serialize($key));
 	}
 
 
@@ -276,7 +311,12 @@ class NCache extends NObject implements ArrayAccess
 	 */
 	public function offsetGet($key)
 	{
-		return $this->load($key);
+		$key = is_scalar($key) ? (string) $key : serialize($key);
+		if ($this->key !== $key) {
+			$this->key = $key;
+			$this->data = $this->load($key);
+		}
+		return $this->data;
 	}
 
 
@@ -289,7 +329,8 @@ class NCache extends NObject implements ArrayAccess
 	 */
 	public function offsetExists($key)
 	{
-		return $this->load($key) !== NULL;
+		$this->release();
+		return $this->offsetGet($key) !== NULL;
 	}
 
 
@@ -303,6 +344,17 @@ class NCache extends NObject implements ArrayAccess
 	public function offsetUnset($key)
 	{
 		$this->save($key, NULL);
+	}
+
+
+
+	/**
+	 * Discards the internal cache used by ArrayAccess.
+	 * @return void
+	 */
+	public function release()
+	{
+		$this->key = $this->data = NULL;
 	}
 
 

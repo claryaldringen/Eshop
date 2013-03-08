@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,20 +12,14 @@
 
 
 
-
-
-
-
 /**
  * Supplemental Oracle database driver.
  *
  * @author     David Grudl
+ * @package Nette\Database\Drivers
  */
 class NOciDriver extends NObject implements ISupplementalDriver
 {
-	/** @var array */
-	public $supports = array('meta' => TRUE);
-
 	/** @var NConnection */
 	private $connection;
 
@@ -53,6 +47,16 @@ class NOciDriver extends NObject implements ISupplementalDriver
 	{
 		// @see http://download.oracle.com/docs/cd/B10500_01/server.920/a96540/sql_elements9a.htm
 		return '"' . str_replace('"', '""', $name) . '"';
+	}
+
+
+
+	/**
+	 * Formats boolean for use in a SQL statement.
+	 */
+	public function formatBool($value)
+	{
+		return $value ? '1' : '0';
 	}
 
 
@@ -101,6 +105,69 @@ class NOciDriver extends NObject implements ISupplementalDriver
 	public function normalizeRow($row, $statement)
 	{
 		return $row;
+	}
+
+
+
+	/********************* reflection ****************d*g**/
+
+
+
+	/**
+	 * Returns list of tables.
+	 */
+	public function getTables()
+	{
+		$tables = array();
+		foreach ($this->connection->query('SELECT * FROM cat') as $row) {
+			if ($row[1] === 'TABLE' || $row[1] === 'VIEW') {
+				$tables[] = array(
+					'name' => $row[0],
+					'view' => $row[1] === 'VIEW',
+				);
+			}
+		}
+		return $tables;
+	}
+
+
+
+	/**
+	 * Returns metadata for all columns in a table.
+	 */
+	public function getColumns($table)
+	{
+		throw new NotImplementedException;
+	}
+
+
+
+	/**
+	 * Returns metadata for all indexes in a table.
+	 */
+	public function getIndexes($table)
+	{
+		throw new NotImplementedException;
+	}
+
+
+
+	/**
+	 * Returns metadata for all foreign keys in a table.
+	 */
+	public function getForeignKeys($table)
+	{
+		throw new NotImplementedException;
+	}
+
+
+
+	/**
+	 * @return bool
+	 */
+	public function isSupported($item)
+	{
+		return $item === self::SUPPORT_COLUMNS_META || $item === self::SUPPORT_SEQUENCE;
 	}
 
 }

@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Security
  */
-
-
-
-
 
 
 
@@ -23,6 +19,12 @@
  *
  * @copyright  Copyright (c) 2005, 2007 Zend Technologies USA Inc.
  * @author     David Grudl
+ *
+ * @property-read array $roles
+ * @property-read array $resources
+ * @property-read mixed $queriedRole
+ * @property-read mixed $queriedResource
+ * @package Nette\Security
  */
 class NPermission extends NObject implements IAuthorizator
 {
@@ -124,6 +126,17 @@ class NPermission extends NObject implements IAuthorizator
 		} elseif ($need && !isset($this->roles[$role])) {
 			throw new InvalidStateException("Role '$role' does not exist.");
 		}
+	}
+
+
+
+	/**
+	 * Returns all Roles.
+	 * @return array
+	 */
+	public function getRoles()
+	{
+		return array_keys($this->roles);
 	}
 
 
@@ -307,6 +320,17 @@ class NPermission extends NObject implements IAuthorizator
 
 
 	/**
+	 * Returns all Resources.
+	 * @return array
+	 */
+	public function getResources()
+	{
+		return array_keys($this->resources);
+	}
+
+
+
+	/**
 	 * Returns TRUE if $resource inherits from $inherit. If $onlyParents is TRUE,
 	 * then $resource must inherit directly from $inherit.
 	 *
@@ -412,7 +436,7 @@ class NPermission extends NObject implements IAuthorizator
 	 * @param  string|array|NPermission::ALL  roles
 	 * @param  string|array|NPermission::ALL  resources
 	 * @param  string|array|NPermission::ALL  privileges
-	 * @param  callback    assertion
+	 * @param  callable    assertion
 	 * @return NPermission  provides a fluent interface
 	 */
 	public function allow($roles = self::ALL, $resources = self::ALL, $privileges = self::ALL, $assertion = NULL)
@@ -430,7 +454,7 @@ class NPermission extends NObject implements IAuthorizator
 	 * @param  string|array|NPermission::ALL  roles
 	 * @param  string|array|NPermission::ALL  resources
 	 * @param  string|array|NPermission::ALL  privileges
-	 * @param  callback    assertion
+	 * @param  callable    assertion
 	 * @return NPermission  provides a fluent interface
 	 */
 	public function deny($roles = self::ALL, $resources = self::ALL, $privileges = self::ALL, $assertion = NULL)
@@ -480,7 +504,7 @@ class NPermission extends NObject implements IAuthorizator
 	 * @param  string|array|NPermission::ALL  roles
 	 * @param  string|array|NPermission::ALL  resources
 	 * @param  string|array|NPermission::ALL  privileges
-	 * @param  callback    assertion
+	 * @param  callable    assertion
 	 * @throws InvalidStateException
 	 * @return NPermission  provides a fluent interface
 	 */
@@ -522,7 +546,7 @@ class NPermission extends NObject implements IAuthorizator
 			$privileges = array($privileges);
 		}
 
-		$assertion = $assertion ? callback($assertion) : NULL;
+		$assertion = $assertion ? new NCallback($assertion) : NULL;
 
 		if ($toAdd) { // add to the rules
 			foreach ($resources as $resource) {

@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,15 +12,12 @@
 
 
 
-
-
-
-
 /**
  * FireLogger console logger.
  *
  * @see http://firelogger.binaryage.com
  * @author     David Grudl
+ * @package Nette\Diagnostics
  */
 class NFireLogger extends NObject
 {
@@ -148,13 +145,13 @@ class NFireLogger extends NObject
 					if ($k !== $marker) {
 						$res[self::jsonDump($k)] = self::jsonDump($v, $level + 1);
 					}
-			}
+				}
 				unset($var[$marker]);
 				return $res;
 
 			} else {
 				return " \xE2\x80\xA6 ";
-		}
+			}
 
 		} elseif (is_object($var)) {
 			$arr = (array) $var;

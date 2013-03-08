@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,13 @@
 
 
 
-
-
-
-
 /**
  * String output response.
  *
  * @author     David Grudl
+ *
+ * @property-read mixed $source
+ * @package Nette\Application\Responses
  */
 class NTextResponse extends NObject implements IPresenterResponse
 {

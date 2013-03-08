@@ -1,11 +1,11 @@
-<?php 
+<?php
 abstract class BasePresenter extends NPresenter{
-	
+
 	public $lang = 'cs';
 	protected $user;
 	protected $userdata;
 	private $models = array();
-	
+
 	public function startup()
 	{
 		parent::startup();
@@ -18,20 +18,21 @@ abstract class BasePresenter extends NPresenter{
 		CnbNette::register($this->getTemplate());
 		$user = $this->getUser();
 		$user->setAuthenticator($this->getInstanceOf('Authenticator'));
+		$this->context->addService('authenticator', $this->getInstanceOf('Authenticator'));
 	}
-	
+
 	function beforeRender()
 	{
 		if (!NEnvironment::getSession()->isStarted()) {
         NEnvironment::getSession()->start();
 		}
-		
+
 		$this->template->user = $this->user;
 		$this->template->lang = $this->lang;
 		$this->template->userdata = $this->userdata;
 	}
-	
-	
+
+
 	public function createComponentTextEditNForm()
 	{
 		$form = new NAppForm($this,'textEditNForm');
@@ -40,9 +41,9 @@ abstract class BasePresenter extends NPresenter{
 		$form->addHidden('lang');
 		$form->addTextArea('obsah','');
 		$form->onSuccess[] = array($this,'textEditNFormSubmited');
-		return $form;	
+		return $form;
 	}
-	
+
 	public function textEditNFormSubmited(NAppForm $form)
 	{
 		$values = $form->getValues();
@@ -51,9 +52,9 @@ abstract class BasePresenter extends NPresenter{
 			$model = $this->getInstanceOf('ProductModel');
 			$model->setPopis($values['id'],$values['obsah'],$values['lang']);
 		}
-		$this->redirect('this');	
+		$this->redirect('this');
 	}
-	
+
 	public function createComponentLoginNForm()
 	{
 		$form = new NAppForm($this,'loginNForm');
@@ -68,7 +69,7 @@ abstract class BasePresenter extends NPresenter{
 		$form->onSuccess[] = array($this,'loginNFormSubmited');
 		return $form;
 	}
-	
+
 	public function loginNFormSubmited(NAppForm $form)
 	{
 		$user = $this->getUser();
@@ -90,7 +91,7 @@ abstract class BasePresenter extends NPresenter{
 		if($user->isInRole('2'))$this->redirect('Kategorie:default');
 		else $this->redirect('this');
 	}
-	
+
 	public function createComponentSearchForm()
 	{
 		$form = new NAppForm($this,'searchForm');
@@ -101,7 +102,7 @@ abstract class BasePresenter extends NPresenter{
 		$form->onSuccess[] = array($this,'searchFormSubmited');
 		return $form;
 	}
-	
+
 	public function searchFormSubmited(NAppForm $form)
 	{
 		$session = NEnvironment::getSession('shop');
@@ -109,19 +110,19 @@ abstract class BasePresenter extends NPresenter{
 		$session->search = $model->search($form['search']->getValue(),$this->lang);
 		$this->redirect('Frontend:search');
 	}
-	
+
 	public function createComponentGa()
 	{
 		$ga = new GAcontrol($this,'ga');
 		return $ga;
 	}
-	
+
 	protected function createComponentCnb()
 	{
-		$cnb = new Cnb();
+		$cnb = new Cnb($this->context->params['tempDir']);
 		return $cnb;
 	}
-	
+
 	public function handleLogout()
 	{
 		$user = NEnvironment::getUser();
@@ -129,7 +130,7 @@ abstract class BasePresenter extends NPresenter{
 		if(!in_array($this->getAction(),array('order','basket','orderend')))$this->redirect('this');
 		else $this->redirect('default');
 	}
-	
+
 	public function handleNoSpam($id)
 	{
 		$model = $this->getInstanceOf('UserModel');
@@ -137,7 +138,7 @@ abstract class BasePresenter extends NPresenter{
 		$this->flashMessage('Zasílání obchodních sdělení bylo zrušeno.');
 		$this->redirect('this');
 	}
-	
+
 	public function handleSetPaymentFromBank()
 	{
 		$model = $this->getInstanceOf('OrdersModel');
@@ -150,18 +151,18 @@ abstract class BasePresenter extends NPresenter{
 		}
 		die;
 	}
-	
+
 	public function inWords($number)
 	{
 		$helpers = new Helpers();
 		return $helpers->inWods($number);
 	}
-	
+
 	/**
 	 * Tovarni metoda pro instancovani modelu.
-	 * 
+	 *
 	 * @param String $model
-	 * @return $model 
+	 * @return $model
 	 */
 	public function getInstanceOf($model)
 	{

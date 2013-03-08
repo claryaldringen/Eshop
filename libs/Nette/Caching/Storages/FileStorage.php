@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Cache file storage.
  *
  * @author     David Grudl
+ * @package Nette\Caching\Storages
  */
 class NFileStorage extends NObject implements ICacheStorage
 {
@@ -63,6 +60,9 @@ class NFileStorage extends NObject implements ICacheStorage
 
 	/** @var ICacheJournal */
 	private $journal;
+
+	/** @var array */
+	private $locks;
 
 
 
@@ -143,6 +143,31 @@ class NFileStorage extends NObject implements ICacheStorage
 
 
 	/**
+	 * Prevents item reading and writing. Lock is released by write() or remove().
+	 * @param  string key
+	 * @return void
+	 */
+	public function lock($key)
+	{
+		$cacheFile = $this->getCacheFile($key);
+		if ($this->useDirs && !is_dir($dir = dirname($cacheFile))) {
+			@mkdir($dir); // @ - directory may already exist
+		}
+		$handle = @fopen($cacheFile, 'r+b'); // @ - file may not exist
+		if (!$handle) {
+			$handle = fopen($cacheFile, 'wb');
+			if (!$handle) {
+				return;
+			}
+		}
+
+		$this->locks[$key] = $handle;
+		flock($handle, LOCK_EX);
+	}
+
+
+
+	/**
 	 * Writes item into the cache.
 	 * @param  string key
 	 * @param  mixed  data
@@ -176,20 +201,16 @@ class NFileStorage extends NObject implements ICacheStorage
 			$meta[self::META_CALLBACKS] = $dp[NCache::CALLBACKS];
 		}
 
+		if (!isset($this->locks[$key])) {
+			$this->lock($key);
+			if (!isset($this->locks[$key])) {
+				return;
+			}
+		}
+		$handle = $this->locks[$key];
+		unset($this->locks[$key]);
+
 		$cacheFile = $this->getCacheFile($key);
-		if ($this->useDirs && !is_dir($dir = dirname($cacheFile))) {
-			umask(0000);
-			if (!mkdir($dir, 0777)) {
-				return;
-			}
-		}
-		$handle = @fopen($cacheFile, 'r+b'); // @ - file may not exist
-		if (!$handle) {
-			$handle = fopen($cacheFile, 'wb');
-			if (!$handle) {
-				return;
-			}
-		}
 
 		if (isset($dp[NCache::TAGS]) || isset($dp[NCache::PRIORITY])) {
 			if (!$this->journal) {
@@ -198,7 +219,6 @@ class NFileStorage extends NObject implements ICacheStorage
 			$this->journal->write($cacheFile, $dp);
 		}
 
-		flock($handle, LOCK_EX);
 		ftruncate($handle, 0);
 
 		if (!is_string($data)) {
@@ -227,7 +247,7 @@ class NFileStorage extends NObject implements ICacheStorage
 
 			flock($handle, LOCK_UN);
 			fclose($handle);
-			return TRUE;
+			return;
 		} while (FALSE);
 
 		$this->delete($cacheFile, $handle);
@@ -242,6 +262,7 @@ class NFileStorage extends NObject implements ICacheStorage
 	 */
 	public function remove($key)
 	{
+		unset($this->locks[$key]);
 		$this->delete($this->getCacheFile($key));
 	}
 
@@ -252,15 +273,15 @@ class NFileStorage extends NObject implements ICacheStorage
 	 * @param  array  conditions
 	 * @return void
 	 */
-	public function clean(array $conds)
+	public function clean(array $conditions)
 	{
-		$all = !empty($conds[NCache::ALL]);
-		$collector = empty($conds);
+		$all = !empty($conditions[NCache::ALL]);
+		$collector = empty($conditions);
 
 		// cleaning using file iterator
 		if ($all || $collector) {
 			$now = time();
-			foreach (NFinder::find('*')->from($this->dir)->childFirst() as $entry) {
+			foreach (NFinder::find('_*')->from($this->dir)->childFirst() as $entry) {
 				$path = (string) $entry;
 				if ($entry->isDir()) { // collector: remove empty dirs
 					@rmdir($path); // @ - removing dirs is not necessary
@@ -275,7 +296,9 @@ class NFileStorage extends NObject implements ICacheStorage
 						continue;
 					}
 
-					if (!empty($meta[self::META_EXPIRE]) && $meta[self::META_EXPIRE] < $now) {
+					if ((!empty($meta[self::META_DELTA]) && filemtime($meta[self::FILE]) + $meta[self::META_DELTA] < $now)
+						|| (!empty($meta[self::META_EXPIRE]) && $meta[self::META_EXPIRE] < $now)
+					) {
 						$this->delete($path, $meta[self::HANDLE]);
 						continue;
 					}
@@ -286,14 +309,14 @@ class NFileStorage extends NObject implements ICacheStorage
 			}
 
 			if ($this->journal) {
-				$this->journal->clean($conds);
+				$this->journal->clean($conditions);
 			}
 			return;
 		}
 
 		// cleaning using journal
 		if ($this->journal) {
-			foreach ($this->journal->clean($conds) as $file) {
+			foreach ($this->journal->clean($conditions) as $file) {
 				$this->delete($file);
 			}
 		}

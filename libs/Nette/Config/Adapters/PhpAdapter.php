@@ -35,7 +35,6 @@ class NConfigPhpAdapter extends NObject implements IConfigAdapter
 
 	/**
 	 * Generates configuration in PHP format.
-	 * @param  array
 	 * @return string
 	 */
 	public function dump(array $data)

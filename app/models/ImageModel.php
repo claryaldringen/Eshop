@@ -5,7 +5,7 @@ class ImageModel extends BaseModel{
 	public function setImage(NImage $image,$owner,$typ)
 	{
 
-		$size = $this->context->params->image;
+		$size = $this->context->params['image'];
 
 		$result = dibi::fetch("SELECT id FROM images WHERE vlastnik=%i AND typ=%s",$owner,$typ);
 		if(isset($result->id))$id = $result->id;

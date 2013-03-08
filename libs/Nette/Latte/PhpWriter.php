@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * PHP code generator helpers.
  *
  * @author     David Grudl
+ * @package Nette\Latte
  */
 class NPhpWriter extends NObject
 {
@@ -29,29 +26,29 @@ class NPhpWriter extends NObject
 	/** @var string */
 	private $modifiers;
 
-	/** @var array */
-	private $context;
+	/** @var NLatteCompiler */
+	private $compiler;
 
 
 
-	public static function using(NMacroNode $node, $context = NULL)
+	public static function using(NMacroNode $node, NLatteCompiler $compiler = NULL)
 	{
-		return new self($node->tokenizer, $node->modifiers, $context);
+		return new self($node->tokenizer, $node->modifiers, $compiler);
 	}
 
 
 
-	public function __construct(NMacroTokenizer $argsTokenizer, $modifiers = NULL, $context = NULL)
+	public function __construct(NMacroTokenizer $argsTokenizer, $modifiers = NULL, NLatteCompiler $compiler = NULL)
 	{
 		$this->argsTokenizer = $argsTokenizer;
 		$this->modifiers = $modifiers;
-		$this->context = $context;
+		$this->compiler = $compiler;
 	}
 
 
 
 	/**
-	 * Expands %node.word, %node.array, %node.args, %escape, %modify, %var in code.
+	 * Expands %node.word, %node.array, %node.args, %escape(), %modify(), %var, %raw in code.
 	 * @param  string
 	 * @return string
 	 */
@@ -61,12 +58,15 @@ class NPhpWriter extends NObject
 		array_shift($args);
 		$word = strpos($mask, '%node.word') === FALSE ? NULL : $this->argsTokenizer->fetchWord();
 		$me = $this;
-		$mask = NStrings::replace($mask, '#%escape\(((?>[^()]+)|\((?1)\))*\)#', callback(create_function('$m', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('me'=>$me)).'], EXTR_REFS);
-			return $me->escape(substr($m[0], 8, -1));
+		$mask = NStrings::replace($mask, '#%escape(\(([^()]*+|(?1))+\))#', new NCallback(create_function('$m', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('me'=>$me)).'-1], EXTR_REFS);
+			return $me->escape(substr($m[1], 1, -1));
+		')));
+		$mask = NStrings::replace($mask, '#%modify(\(([^()]*+|(?1))+\))#', new NCallback(create_function('$m', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('me'=>$me)).'-1], EXTR_REFS);
+			return $me->formatModifiers(substr($m[1], 1, -1));
 		')));
 
-		return NStrings::replace($mask, '#([,+]\s*)?%(node\.word|node\.array|node\.args|modify|var)(\?)?(\s*\+\s*)?()#',
-			callback(create_function('$m', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('me'=>$me,'word'=> $word, 'args'=>& $args)).'], EXTR_REFS);
+		return NStrings::replace($mask, '#([,+]\s*)?%(node\.word|node\.array|node\.args|var|raw)(\?)?(\s*\+\s*)?()#',
+			new NCallback(create_function('$m', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('me'=>$me,'word'=> $word, 'args'=>& $args)).'-1], EXTR_REFS);
 			list(, $l, $macro, $cond, $r) = $m;
 
 			switch ($macro) {
@@ -77,10 +77,10 @@ class NPhpWriter extends NObject
 			case \'node.array\':
 				$code = $me->formatArray();
 				$code = $cond && $code === \'array()\' ? \'\' : $code; break;
-			case \'modify\':
-				$code = $me->formatModifiers(array_shift($args)); break;
 			case \'var\':
 				$code = var_export(array_shift($args), TRUE); break;
+			case \'raw\':
+				$code = (string) array_shift($args); break;
 			}
 
 			if ($cond && $code === \'\') {
@@ -113,7 +113,7 @@ class NPhpWriter extends NObject
 
 			} elseif (!$inside) {
 				if ($token['type'] === NMacroTokenizer::T_SYMBOL) {
-					if ($this->context && $token['value'] === 'escape') {
+					if ($this->compiler && $token['value'] === 'escape') {
 						$var = $this->escape($var);
 						$tokenizer->fetch('|');
 					} else {
@@ -121,7 +121,7 @@ class NPhpWriter extends NObject
 						$inside = TRUE;
 					}
 				} else {
-					throw new NLatteException("Modifier name must be alphanumeric string, '$token[value]' given.");
+					throw new NCompileException("Modifier name must be alphanumeric string, '$token[value]' given.");
 				}
 			} else {
 				if ($token['value'] === ':' || $token['value'] === ',') {
@@ -194,7 +194,7 @@ class NPhpWriter extends NObject
 	 */
 	public function formatWord($s)
 	{
-		return (is_numeric($s) || strspn($s, '\'"$') || in_array(strtolower($s), array('true', 'false', 'null')))
+		return (is_numeric($s) || preg_match('#^\$|[\'"]|^true\z|^false\z|^null\z#i', $s))
 			? $s : '"' . $s . '"';
 	}
 
@@ -203,7 +203,7 @@ class NPhpWriter extends NObject
 	/**
 	 * @return bool
 	 */
-	public function canQuote($tokenizer)
+	public function canQuote(NMacroTokenizer $tokenizer)
 	{
 		return $tokenizer->isCurrent(NMacroTokenizer::T_SYMBOL)
 			&& (!$tokenizer->hasPrev() || $tokenizer->isPrev(',', '(', '[', '=', '=>', ':', '?'))
@@ -245,7 +245,9 @@ class NPhpWriter extends NObject
 			}
 
 			if ($token['value'] === '[') { // simplified array syntax [...]
-				if ($arrays[] = $prev['value'] !== ']' && $prev['type'] !== NMacroTokenizer::T_SYMBOL && $prev['type'] !== NMacroTokenizer::T_VARIABLE) {
+				if ($arrays[] = $prev['value'] !== ']' && $prev['value'] !== ')' && $prev['type'] !== NMacroTokenizer::T_SYMBOL
+					&& $prev['type'] !== NMacroTokenizer::T_VARIABLE && $prev['type'] !== NMacroTokenizer::T_KEYWORD
+				) {
 					$tokens[] = NMacroTokenizer::createToken('array') + array('depth' => $depth);
 					$token = NMacroTokenizer::createToken('(');
 				}
@@ -269,7 +271,7 @@ class NPhpWriter extends NObject
 		}
 
 		$tokenizer = clone $tokenizer;
-		$tokenizer->position = 0;
+		$tokenizer->reset();
 		$tokenizer->tokens = $tokens;
 		return $tokenizer;
 	}
@@ -278,36 +280,37 @@ class NPhpWriter extends NObject
 
 	public function escape($s)
 	{
-		switch ($this->context[0]) {
-		case NParser::CONTEXT_TEXT:
-			return "NTemplateHelpers::escapeHtml($s, ENT_NOQUOTES)";
-		case NParser::CONTEXT_TAG:
-			return "NTemplateHelpers::escapeHtml($s)";
-		case NParser::CONTEXT_ATTRIBUTE:
-			list(, $name, $quote) = $this->context;
-			$quote = $quote === '"' ? '' : ', ENT_QUOTES';
-			if (strncasecmp($name, 'on', 2) === 0) {
-				return "htmlSpecialChars(NTemplateHelpers::escapeJs($s)$quote)";
-			} elseif ($name === 'style') {
-				return "htmlSpecialChars(NTemplateHelpers::escapeCss($s)$quote)";
-			} else {
+		switch ($this->compiler->getContentType()) {
+		case NLatteCompiler::CONTENT_XHTML:
+		case NLatteCompiler::CONTENT_HTML:
+			$context = $this->compiler->getContext();
+			switch ($context[0]) {
+			case NLatteCompiler::CONTEXT_SINGLE_QUOTED:
+			case NLatteCompiler::CONTEXT_DOUBLE_QUOTED:
+				if ($context[1] === NLatteCompiler::CONTENT_JS) {
+					$s = "NTemplateHelpers::escapeJs($s)";
+				} elseif ($context[1] === NLatteCompiler::CONTENT_CSS) {
+					$s = "NTemplateHelpers::escapeCss($s)";
+				}
+				$quote = $context[0] === NLatteCompiler::CONTEXT_DOUBLE_QUOTED ? '' : ', ENT_QUOTES';
 				return "htmlSpecialChars($s$quote)";
-			}
-		case NParser::CONTEXT_COMMENT:
-			return "NTemplateHelpers::escapeHtmlComment($s)";
-		case NParser::CONTEXT_CDATA;
-			return 'NTemplateHelpers::escape' . ucfirst($this->context[1]) . "($s)"; // Js, Css
-		case NParser::CONTEXT_NONE:
-			switch (isset($this->context[1]) ? $this->context[1] : NULL) {
-			case 'xml':
-			case 'js':
-			case 'css':
-				return 'NTemplateHelpers::escape' . ucfirst($this->context[1]) . "($s)";
-			case 'text':
-				return $s;
+			case NLatteCompiler::CONTEXT_COMMENT:
+				return "NTemplateHelpers::escapeHtmlComment($s)";
+			case NLatteCompiler::CONTENT_JS:
+			case NLatteCompiler::CONTENT_CSS:
+				return 'NTemplateHelpers::escape' . ucfirst($context[0]) . "($s)";
 			default:
-				return "\$template->escape($s)";
+				return "NTemplateHelpers::escapeHtml($s, ENT_NOQUOTES)";
 			}
+		case NLatteCompiler::CONTENT_XML:
+		case NLatteCompiler::CONTENT_JS:
+		case NLatteCompiler::CONTENT_CSS:
+		case NLatteCompiler::CONTENT_ICAL:
+			return 'NTemplateHelpers::escape' . ucfirst($this->compiler->getContentType()) . "($s)";
+		case NLatteCompiler::CONTENT_TEXT:
+			return $s;
+		default:
+			return "\$template->escape($s)";
 		}
 	}
 

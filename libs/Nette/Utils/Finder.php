@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Utils
  */
-
-
-
-
 
 
 
@@ -27,6 +23,7 @@
  * </code>
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 class NFinder extends NObject implements IteratorAggregate
 {
@@ -109,9 +106,9 @@ class NFinder extends NObject implements IteratorAggregate
 		$this->cursor = & $this->groups[];
 		$pattern = self::buildPattern($masks);
 		if ($type || $pattern) {
-			$this->filter(create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('type'=>$type,'pattern'=> $pattern)).'], EXTR_REFS);
-				return (!$type || $file->$type())
-					&& !$file->isDot()
+			$this->filter(create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('type'=>$type,'pattern'=> $pattern)).'-1], EXTR_REFS);
+				return !$file->isDot()
+					&& (!$type || $file->$type())
 					&& (!$pattern || preg_match($pattern, \'/\' . strtr($file->getSubPathName(), \'\\\\\', \'/\')));
 			'));
 		}
@@ -193,7 +190,7 @@ class NFinder extends NObject implements IteratorAggregate
 			$pattern[] = $prefix . strtr(preg_quote($mask, '#'),
 				array('\*\*' => '.*', '\*' => '[^/]*', '\?' => '[^/]', '\[\!' => '[^', '\[' => '[', '\]' => ']', '\-' => '-'));
 		}
-		return $pattern ? '#/(' . implode('|', $pattern) . ')$#i' : NULL;
+		return $pattern ? '#/(' . implode('|', $pattern) . ')\z#i' : NULL;
 	}
 
 
@@ -204,7 +201,7 @@ class NFinder extends NObject implements IteratorAggregate
 
 	/**
 	 * Returns iterator.
-	 * @return NIterator
+	 * @return Iterator
 	 */
 	public function getIterator()
 	{
@@ -215,10 +212,12 @@ class NFinder extends NObject implements IteratorAggregate
 			return $this->buildIterator($this->paths[0]);
 
 		} else {
-			$iterator = new AppendIterator(); // buggy!
+			$iterator = new AppendIterator();
+			$iterator->append($workaround = new ArrayIterator(array('workaround PHP bugs #49104, #63077')));
 			foreach ($this->paths as $path) {
 				$iterator->append($this->buildIterator($path));
 			}
+			unset($workaround[0]);
 			return $iterator;
 		}
 	}
@@ -228,7 +227,7 @@ class NFinder extends NObject implements IteratorAggregate
 	/**
 	 * Returns per-path iterator.
 	 * @param  string
-	 * @return NIterator
+	 * @return Iterator
 	 */
 	private function buildIterator($path)
 	{
@@ -240,8 +239,8 @@ class NFinder extends NObject implements IteratorAggregate
 
 		if ($this->exclude) {
 			$filters = $this->exclude;
-			$iterator = new NRecursiveCallbackFilterIterator($iterator, create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('filters'=>$filters)).'], EXTR_REFS);
-				if (!$file->isFile()) {
+			$iterator = new NNRecursiveCallbackFilterIterator($iterator, create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('filters'=>$filters)).'-1], EXTR_REFS);
+				if (!$file->isDot() && !$file->isFile()) {
 					foreach ($filters as $filter) {
 						if (!call_user_func($filter, $file)) {
 							return FALSE;
@@ -259,7 +258,7 @@ class NFinder extends NObject implements IteratorAggregate
 
 		if ($this->groups) {
 			$groups = $this->groups;
-			$iterator = new NCallbackFilterIterator($iterator, create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('groups'=>$groups)).'], EXTR_REFS);
+			$iterator = new NNCallbackFilterIterator($iterator, create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('groups'=>$groups)).'-1], EXTR_REFS);
 				foreach ($groups as $filters) {
 					foreach ($filters as $filter) {
 						if (!call_user_func($filter, $file)) {
@@ -294,7 +293,7 @@ class NFinder extends NObject implements IteratorAggregate
 		}
 		$pattern = self::buildPattern($masks);
 		if ($pattern) {
-			$this->filter(create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('pattern'=>$pattern)).'], EXTR_REFS);
+			$this->filter(create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('pattern'=>$pattern)).'-1], EXTR_REFS);
 				return !preg_match($pattern, \'/\' . strtr($file->getSubPathName(), \'\\\\\', \'/\'));
 			'));
 		}
@@ -305,7 +304,7 @@ class NFinder extends NObject implements IteratorAggregate
 
 	/**
 	 * Restricts the search using callback.
-	 * @param  callback
+	 * @param  callable
 	 * @return NFinder  provides a fluent interface
 	 */
 	public function filter($callback)
@@ -338,7 +337,7 @@ class NFinder extends NObject implements IteratorAggregate
 	public function size($operator, $size = NULL)
 	{
 		if (func_num_args() === 1) { // in $operator is predicate
-			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?((?:\d*\.)?\d+)\s*(K|M|G|)B?$#i', $operator, $matches)) {
+			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?((?:\d*\.)?\d+)\s*(K|M|G|)B?\z#i', $operator, $matches)) {
 				throw new InvalidArgumentException('Invalid size predicate format.');
 			}
 			list(, $operator, $size, $unit) = $matches;
@@ -346,7 +345,7 @@ class NFinder extends NObject implements IteratorAggregate
 			$size *= $units[strtolower($unit)];
 			$operator = $operator ? $operator : '=';
 		}
-		return $this->filter(create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('operator'=>$operator,'size'=> $size)).'], EXTR_REFS);
+		return $this->filter(create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('operator'=>$operator,'size'=> $size)).'-1], EXTR_REFS);
 			return NFinder::compare($file->getSize(), $operator, $size);
 		'));
 	}
@@ -362,14 +361,14 @@ class NFinder extends NObject implements IteratorAggregate
 	public function date($operator, $date = NULL)
 	{
 		if (func_num_args() === 1) { // in $operator is predicate
-			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?(.+)$#i', $operator, $matches)) {
+			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?(.+)\z#i', $operator, $matches)) {
 				throw new InvalidArgumentException('Invalid date predicate format.');
 			}
 			list(, $operator, $date) = $matches;
 			$operator = $operator ? $operator : '=';
 		}
 		$date = NDateTime53::from($date)->format('U');
-		return $this->filter(create_function('$file', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('operator'=>$operator,'date'=> $date)).'], EXTR_REFS);
+		return $this->filter(create_function('$file', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('operator'=>$operator,'date'=> $date)).'-1], EXTR_REFS);
 			return NFinder::compare($file->getMTime(), $operator, $date);
 		'));
 	}

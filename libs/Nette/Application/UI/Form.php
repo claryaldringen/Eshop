@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Application\UI
  */
-
-
-
-
 
 
 
@@ -22,6 +18,7 @@
  * @author     David Grudl
  *
  * @property-read NPresenter $presenter
+ * @package Nette\Application\UI
  */
 class NAppForm extends NForm implements ISignalReceiver
 {
@@ -76,7 +73,9 @@ class NAppForm extends NForm implements ISignalReceiver
 			// fill-in the form with HTTP data
 			if ($this->isSubmitted()) {
 				foreach ($this->getControls() as $control) {
-					$control->loadHttpData();
+					if (!$control->isDisabled()) {
+						$control->loadHttpData();
+					}
 				}
 			}
 		}
@@ -116,7 +115,7 @@ class NAppForm extends NForm implements ISignalReceiver
 		if ($isPost) {
 			return NArrays::mergeTree($request->getPost(), $request->getFiles());
 		} else {
-			return $request->getParams();
+			return $request->getParameters();
 		}
 	}
 
@@ -134,7 +133,9 @@ class NAppForm extends NForm implements ISignalReceiver
 	public function signalReceived($signal)
 	{
 		if ($signal === 'submit') {
-			$this->fireEvents();
+			if (!$this->getPresenter()->getRequest()->hasFlag(NPresenterRequest::RESTORED)) {
+				$this->fireEvents();
+			}
 		} else {
 			$class = get_class($this);
 			throw new NBadSignalException("Missing handler for signal '$signal' in $class.");

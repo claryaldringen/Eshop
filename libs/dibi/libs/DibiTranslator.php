@@ -3,12 +3,10 @@
 /**
  * This file is part of the "dibi" - smart database abstraction layer.
  *
- * Copyright (c) 2005, 2010 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2005 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
- *
- * @package    dibi
  */
 
 
@@ -17,6 +15,7 @@
  * dibi SQL translator.
  *
  * @author     David Grudl
+ * @package    dibi
  */
 final class DibiTranslator extends DibiObject
 {
@@ -103,7 +102,7 @@ final class DibiTranslator extends DibiObject
 			// simple string means SQL
 			if (is_string($arg)) {
 				// speed-up - is regexp required?
-				$toSkip = strcspn($arg, '`[\'":%');
+				$toSkip = strcspn($arg, '`[\'":%?');
 
 				if (strlen($arg) === $toSkip) { // needn't be translated
 					$sql[] = $arg;
@@ -219,7 +218,16 @@ final class DibiTranslator extends DibiObject
 
 						} else {
 							$v = $this->formatValue($v, $pair[1]);
-							$vx[] = $k . ($pair[1] === 'l' || $pair[1] === 'in' ? 'IN ' : ($v === 'NULL' ? 'IS ' : '= ')) . $v;
+							if ($pair[1] === 'l' || $pair[1] === 'in')	{
+								$op = 'IN ';
+							} elseif (strpos($pair[1], 'like') !== FALSE) {
+								$op = 'LIKE ';
+							} elseif ($v === 'NULL') {
+								$op = 'IS ';
+							} else {
+								$op = '= ';
+							}
+							$vx[] = $k . $op . $v;
 						}
 
 					} else {
@@ -231,7 +239,7 @@ final class DibiTranslator extends DibiObject
 			case 'n':  // key, key, ... identifier names
 				foreach ($value as $k => $v) {
 					if (is_string($k)) {
-						$vx[] = $this->identifiers->$k . (empty($v) ? '' : ' AS ' . $v);
+						$vx[] = $this->identifiers->$k . (empty($v) ? '' : ' AS ' . $this->identifiers->$v);
 					} else {
 						$pair = explode('%', $v, 2); // split into identifier & modifier
 						$vx[] = $this->identifiers->{$pair[0]};
@@ -356,7 +364,7 @@ final class DibiTranslator extends DibiObject
 				if (is_string($value) && is_numeric($value) && strpos($value, 'x') === FALSE) {
 					return $value; // something like -9E-005 is accepted by SQL, HEX values are not
 				} else {
-					return $value === NULL ? 'NULL' : rtrim(rtrim(number_format($value + 0, 5, '.', ''), '0'), '.');
+					return $value === NULL ? 'NULL' : rtrim(rtrim(number_format($value + 0, 20, '.', ''), '0'), '.');
 				}
 
 			case 'd':  // date
@@ -428,7 +436,7 @@ final class DibiTranslator extends DibiObject
 			return (string) $value;
 
 		} elseif (is_float($value)) {
-			return rtrim(rtrim(number_format($value, 5, '.', ''), '0'), '.');
+			return rtrim(rtrim(number_format($value, 20, '.', ''), '0'), '.');
 
 		} elseif (is_bool($value)) {
 			return $this->driver->escape($value, dibi::BOOL);
@@ -439,8 +447,8 @@ final class DibiTranslator extends DibiObject
 		} elseif ($value instanceof DateTime) {
 			return $this->driver->escape($value, dibi::DATETIME);
 
-		} elseif ($value instanceof IDibiVariable) {
-			return (string) $value->toSql();
+		} elseif ($value instanceof DibiLiteral) {
+			return (string) $value;
 
 		} else {
 			$this->hasError = TRUE;

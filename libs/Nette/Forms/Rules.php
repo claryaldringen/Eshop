@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * List of validation & condition rules.
  *
  * @author     David Grudl
+ * @package Nette\Forms
  */
 final class NRules extends NObject implements IteratorAggregate
 {
@@ -28,7 +25,7 @@ final class NRules extends NObject implements IteratorAggregate
 
 	/** @var array */
 	public static $defaultMessages = array(
-		NForm::PROTECTION => 'Security token did not match. Possible CSRF attack.',
+		NForm::PROTECTION => 'Please submit this form again (security token has expired).',
 		NForm::EQUAL => 'Please enter %s.',
 		NForm::FILLED => 'Please complete mandatory field.',
 		NForm::MIN_LENGTH => 'Please enter a value of at least %d characters.',
@@ -43,7 +40,7 @@ final class NRules extends NObject implements IteratorAggregate
 		NForm::IMAGE => 'The uploaded file must be image in format JPEG, GIF or PNG.',
 	);
 
-	/** @var array of NRule */
+	/** @var NRule[] */
 	private $rules = array();
 
 	/** @var NRules */
@@ -244,9 +241,9 @@ final class NRules extends NObject implements IteratorAggregate
 	{
 		$op = $rule->operation;
 		if (is_string($op) && strncmp($op, ':', 1) === 0) {
-			return callback(get_class($rule->control), self::VALIDATE_PREFIX . ltrim($op, ':'));
+			return new NCallback(get_class($rule->control), self::VALIDATE_PREFIX . ltrim($op, ':'));
 		} else {
-			return callback($op);
+			return new NCallback($op);
 		}
 	}
 
@@ -255,6 +252,9 @@ final class NRules extends NObject implements IteratorAggregate
 	public static function formatMessage($rule, $withValue)
 	{
 		$message = $rule->message;
+		if ($message instanceof NHtml) {
+			return $message;
+		}
 		if (!isset($message)) { // report missing message by notice
 			$message = self::$defaultMessages[$rule->operation];
 		}

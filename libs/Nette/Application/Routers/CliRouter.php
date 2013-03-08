@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,13 @@
 
 
 
-
-
-
-
 /**
  * The unidirectional router for CLI. (experimental)
  *
  * @author     David Grudl
+ *
+ * @property-read array $defaults
+ * @package Nette\Application\Routers
  */
 class NCliRouter extends NObject implements IRouter
 {
@@ -42,7 +41,6 @@ class NCliRouter extends NObject implements IRouter
 
 	/**
 	 * Maps command line arguments to a Request object.
-	 * @param  IHttpRequest
 	 * @return NPresenterRequest|NULL
 	 */
 	public function match(IHttpRequest $httpRequest)
@@ -104,8 +102,6 @@ class NCliRouter extends NObject implements IRouter
 
 	/**
 	 * This router is only unidirectional.
-	 * @param  NPresenterRequest
-	 * @param  NUrl
 	 * @return NULL
 	 */
 	public function constructUrl(NPresenterRequest $appRequest, NUrl $refUrl)

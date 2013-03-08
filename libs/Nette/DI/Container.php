@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,21 +12,24 @@
 
 
 
-
-
-
-
 /**
  * The dependency injection container default implementation.
  *
  * @author     David Grudl
+ * @package Nette\DI
  */
-class NDiContainer extends NFreezableObject implements IDiContainer
+class NDIContainer extends NFreezableObject implements IDIContainer
 {
-	const TAG_TYPEHINT = 'typeHint';
+	const TAGS = 'tags';
 
 	/** @var array  user parameters */
+	/*private*/public $parameters = array();
+
+	/** @deprecated */
 	public $params = array();
+
+	/** @var array */
+	public $classes = array();
 
 	/** @var array  storage for shared objects */
 	private $registry = array();
@@ -34,80 +37,76 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 	/** @var array  storage for service factories */
 	private $factories = array();
 
-	/** @var array  */
-	private $tags = array();
+	/** @var array */
+	public $meta = array();
 
 	/** @var array circular reference detector */
 	private $creating;
 
 
 
-	/**
-	 * Adds the specified service or service factory to the container.
-	 * @param  string
-	 * @param  mixed   object, class name or callback
-	 * @param  mixed   array of tags or string typeHint
-	 * @return NDiContainer|NServiceBuilder  provides a fluent interface
-	 */
-	public function addService($name, $service, $tags = NULL)
+	public function __construct(array $params = array())
 	{
-		$this->updating();
-		if (!is_string($name) || $name === '') {
-			throw new InvalidArgumentException("Service name must be a non-empty string, " . gettype($name) . " given.");
-		}
-
-		if (isset($this->registry[$name]) || method_exists($this, "createService$name")) {
-			throw new InvalidStateException("Service '$name' has already been registered.");
-		}
-
-		if (is_string($tags)) {
-			$tags = array(self::TAG_TYPEHINT => array($tags));
-		} elseif (is_array($tags)) {
-			foreach ($tags as $id => $attrs) {
-				if (is_int($id) && is_string($attrs)) {
-					$tags[$attrs] = array();
-					unset($tags[$id]);
-				} elseif (!is_array($attrs)) {
-					$tags[$id] = (array) $attrs;
-				}
-			}
-		}
-
-		if (is_string($service) && strpos($service, ':') === FALSE&& $service[0] !== "\0") { // class name
-			if (!isset($tags[self::TAG_TYPEHINT][0])) {
-				$tags[self::TAG_TYPEHINT][0] = $service;
-			}
-			$service = new NServiceBuilder($service);
-		}
-
-		if ($service instanceof IServiceBuilder) {
-			$factory = array($service, 'createService');
-
-		} elseif (is_object($service) && !$service instanceof Closure && !$service instanceof NCallback) {
-			$this->registry[$name] = $service;
-			$this->tags[$name] = $tags;
-			return $this;
-
-		} else {
-			$factory = $service;
-		}
-
-		$this->factories[$name] = array(callback($factory));
-		$this->tags[$name] = $tags;
-		$this->registry[$name] = & $this->factories[$name][1]; // forces cloning using reference
-		return $service;
+		$this->parameters = $params + $this->parameters;
+		$this->params = &$this->parameters;
 	}
 
 
 
 	/**
-	 * Removes the specified service type from the container.
+	 * @return array
+	 */
+	public function getParameters()
+	{
+		return $this->parameters;
+	}
+
+
+
+	/**
+	 * Adds the service or service factory to the container.
+	 * @param  string
+	 * @param  mixed   object, class name or callable
+	 * @param  array   service meta information
+	 * @return NDIContainer  provides a fluent interface
+	 */
+	public function addService($name, $service, array $meta = NULL)
+	{
+		$this->updating();
+		if (!is_string($name) || !$name) {
+			throw new InvalidArgumentException("Service name must be a non-empty string, " . gettype($name) . " given.");
+		}
+
+		if (isset($this->registry[$name])) {
+			throw new InvalidStateException("Service '$name' has already been registered.");
+		}
+
+		if (is_object($service) && !$service instanceof Closure && !$service instanceof NCallback) {
+			$this->registry[$name] = $service;
+			$this->meta[$name] = $meta;
+			return $this;
+
+		} elseif (!is_string($service) || strpos($service, ':') !== FALSE|| $service[0] === "\0") { // callable
+			$service = new NCallback($service);
+		}
+
+		$this->factories[$name] = array($service);
+		$this->registry[$name] = & $this->factories[$name][1]; // forces cloning using reference
+		$this->meta[$name] = $meta;
+		return $this;
+	}
+
+
+
+	/**
+	 * Removes the service from the container.
+	 * @param  string
 	 * @return void
 	 */
 	public function removeService($name)
 	{
 		$this->updating();
-		unset($this->registry[$name], $this->factories[$name]);
+		unset($this->registry[$name], $this->factories[$name], $this->meta[$name]);
 	}
 
 
@@ -129,16 +128,26 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 
 		if (isset($this->factories[$name])) {
 			list($factory) = $this->factories[$name];
-			if (!$factory->isCallable()) {
+			if (is_string($factory)) {
+				if (!class_exists($factory)) {
+					throw new InvalidStateException("Cannot instantiate service, class '$factory' not found.");
+				}
+				try {
+					$this->creating[$name] = TRUE;
+					$service = new $factory;
+				} catch (Exception $e) {}
+
+			} elseif (!$factory->isCallable()) {
 				throw new InvalidStateException("Unable to create service '$name', factory '$factory' is not callable.");
+
+			} else {
+				$this->creating[$name] = TRUE;
+				try {
+					$service = $factory->invoke($this);
+				} catch (Exception $e) {}
 			}
 
-			$this->creating[$name] = TRUE;
-			try {
-				$service = $factory->invoke($this);
-			} catch (Exception $e) {}
-
-		} elseif (method_exists($this, $factory = 'createService' . ucfirst($name))) { // static method
+		} elseif (method_exists($this, $factory = NDIContainer::getMethodName($name)) && $this->getReflection()->getMethod($factory)->getName() === $factory) {
 			$this->creating[$name] = TRUE;
 			try {
 				$service = $this->$factory();
@@ -155,60 +164,15 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 
 		} elseif (!is_object($service)) {
 			throw new UnexpectedValueException("Unable to create service '$name', value returned by factory '$factory' is not object.");
-
-		} elseif (isset($this->tags[$name][self::TAG_TYPEHINT][0]) && !$service instanceof $this->tags[$name][self::TAG_TYPEHINT][0]) {
-			throw new UnexpectedValueException("Unable to create service '$name', value returned by factory '$factory' is not '{$this->tags[$name][self::TAG_TYPEHINT][0]}' type.");
 		}
 
-		unset($this->factories[$name]);
 		return $this->registry[$name] = $service;
 	}
 
 
 
 	/**
-	 * Gets the service object of the specified type.
-	 * @param  string
-	 * @return object
-	 */
-	public function getServiceByType($type)
-	{
-		foreach ($this->registry as $name => $service) {
-			if (isset($this->tags[$name][self::TAG_TYPEHINT][0]) ? !strcasecmp($this->tags[$name][self::TAG_TYPEHINT][0], $type) : $service instanceof $type) {
-				$found[] = $name;
-			}
-		}
-		if (!isset($found)) {
-			throw new NMissingServiceException("Service matching '$type' type not found.");
-
-		} elseif (count($found) > 1) {
-			throw new NAmbiguousServiceException("Found more than one service ('" . implode("', '", $found) . "') matching '$type' type.");
-		}
-		return $this->getService($found[0]);
-	}
-
-
-
-	/**
-	 * Gets the service objects of the specified tag.
-	 * @param  string
-	 * @return array of [service name => tag attributes]
-	 */
-	public function getServiceNamesByTag($tag)
-	{
-		$found = array();
-		foreach ($this->registry as $name => $service) {
-			if (isset($this->tags[$name][$tag])) {
-				$found[$name] = $this->tags[$name][$tag];
-			}
-		}
-		return $found;
-	}
-
-
-
-	/**
-	 * Exists the service?
+	 * Does the service exist?
 	 * @param  string service name
 	 * @return bool
 	 */
@@ -216,56 +180,122 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 	{
 		return isset($this->registry[$name])
 			|| isset($this->factories[$name])
-			|| method_exists($this, "createService$name");
+			|| method_exists($this, $method = NDIContainer::getMethodName($name)) && $this->getReflection()->getMethod($method)->getName() === $method;
 	}
 
 
 
 	/**
-	 * Checks the service type.
-	 * @param  string
-	 * @param  string
+	 * Is the service created?
+	 * @param  string service name
 	 * @return bool
 	 */
-	public function checkServiceType($name, $type)
+	public function isCreated($name)
 	{
-		return isset($this->tags[$name][self::TAG_TYPEHINT][0])
-			? !strcasecmp($this->tags[$name][self::TAG_TYPEHINT][0], $type)
-			: (isset($this->registry[$name]) && $this->registry[$name] instanceof $type);
+		if (!$this->hasService($name)) {
+			throw new NMissingServiceException("Service '$name' not found.");
+		}
+		return isset($this->registry[$name]);
 	}
 
 
 
-	/********************* tools ****************d*g**/
+	/**
+	 * Resolves service by type.
+	 * @param  string  class or interface
+	 * @param  bool    throw exception if service doesn't exist?
+	 * @return object  service or NULL
+	 * @throws NMissingServiceException
+	 */
+	public function getByType($class, $need = TRUE)
+	{
+		$lower = ltrim(strtolower($class), '\\');
+		if (!isset($this->classes[$lower])) {
+			if ($need) {
+				throw new NMissingServiceException("Service of type $class not found.");
+			}
+		} elseif ($this->classes[$lower] === FALSE) {
+			throw new NMissingServiceException("Multiple services of type $class found.");
+		} else {
+			return $this->getService($this->classes[$lower]);
+		}
+	}
 
 
 
 	/**
-	 * Expands %placeholders% in string.
+	 * Gets the service names of the specified tag.
 	 * @param  string
-	 * @return string
-	 * @throws InvalidStateException
+	 * @return array of [service name => tag attributes]
 	 */
-	public function expand($s)
+	public function findByTag($tag)
 	{
-		if (is_string($s) && strpos($s, '%') !== FALSE) {
-			$that = $this;
-			return @preg_replace_callback('#%([a-z0-9._-]*)%#i', create_function('$m', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('that'=>$that)).'], EXTR_REFS); // intentionally @ due PHP bug #39257
-				list(, $param) = $m;
-				if ($param === \'\') {
-					return \'%\';
-				} elseif (!is_scalar($val = NArrays::get((array) $that->params, explode(\'.\', $param)))) {
-					throw new InvalidStateException("Parameter \'$param\' is not scalar.");
-				}
-				return $val;
-			'), $s);
+		$found = array();
+		foreach ($this->meta as $name => $meta) {
+			if (isset($meta[self::TAGS][$tag])) {
+				$found[$name] = $meta[self::TAGS][$tag];
+			}
 		}
-		return $s;
+		return $found;
+	}
+
+
+
+	/********************* autowiring ****************d*g**/
+
+
+
+	/**
+	 * Creates new instance using autowiring.
+	 * @param  string  class
+	 * @param  array   arguments
+	 * @return object
+	 * @throws InvalidArgumentException
+	 */
+	public function createInstance($class, array $args = array())
+	{
+		$rc = NClassReflection::from($class);
+		if (!$rc->isInstantiable()) {
+			throw new NServiceCreationException("Class $class is not instantiable.");
+
+		} elseif ($constructor = $rc->getConstructor()) {
+			return $rc->newInstanceArgs(NDIHelpers::autowireArguments($constructor, $args, $this));
+
+		} elseif ($args) {
+			throw new NServiceCreationException("Unable to pass arguments, class $class has no constructor.");
+		}
+		return new $class;
+	}
+
+
+
+	/**
+	 * Calls method using autowiring.
+	 * @param  mixed   class, object, function, callable
+	 * @param  array   arguments
+	 * @return mixed
+	 */
+	public function callMethod($function, array $args = array())
+	{
+		$callback = new NCallback($function);
+		return $callback->invokeArgs(NDIHelpers::autowireArguments($callback->toReflection(), $args, $this));
 	}
 
 
 
 	/********************* shortcuts ****************d*g**/
+
+
+
+	/**
+	 * Expands %placeholders%.
+	 * @param  mixed
+	 * @return mixed
+	 */
+	public function expand($s)
+	{
+		return NDIHelpers::expand($s, $this->parameters);
+	}
 
 
 
@@ -296,7 +326,7 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 		if (!is_string($name) || $name === '') {
 			throw new InvalidArgumentException("Service name must be a non-empty string, " . gettype($name) . " given.");
 
-		} elseif (isset($this->registry[$name]) || method_exists($this, "createService$name")) {
+		} elseif (isset($this->registry[$name])) {
 			throw new InvalidStateException("Service '$name' has already been registered.");
 
 		} elseif (!is_object($service)) {
@@ -308,7 +338,7 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 
 
 	/**
-	 * Exists the service?
+	 * Does the service exist?
 	 * @param  string
 	 * @return bool
 	 */
@@ -326,6 +356,14 @@ class NDiContainer extends NFreezableObject implements IDiContainer
 	public function __unset($name)
 	{
 		$this->removeService($name);
+	}
+
+
+
+	public static function getMethodName($name, $isService = TRUE)
+	{
+		$uname = ucfirst($name);
+		return ($isService ? 'createService' : 'create') . ((string) $name === $uname ? '__' : '') . str_replace('.', '__', $uname);
 	}
 
 }

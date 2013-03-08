@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Sends emails via the SMTP server.
  *
  * @author     David Grudl
+ * @package Nette\Mail
  */
 class NSmtpMailer extends NObject implements IMailer
 {
@@ -68,12 +65,11 @@ class NSmtpMailer extends NObject implements IMailer
 
 	/**
 	 * Sends email.
-	 * @param	NMail
-	 * @return	void
+	 * @return void
 	 */
 	public function send(NMail $mail)
 	{
-		$data = $mail->generateMessage();
+		$mail = clone $mail;
 
 		$this->connect();
 
@@ -91,6 +87,8 @@ class NSmtpMailer extends NObject implements IMailer
 			$this->write("RCPT TO:<$email>", array(250, 251));
 		}
 
+		$mail->setHeader('Bcc', NULL);
+		$data = $mail->generateMessage();
 		$this->write('DATA', 354);
 		$data = preg_replace('#^\.#m', '..', $data);
 		$this->write($data);
@@ -130,6 +128,7 @@ class NSmtpMailer extends NObject implements IMailer
 			if (!stream_socket_enable_crypto($this->connection, TRUE, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
 				throw new NSmtpException('Unable to connect via TLS.');
 			}
+			$this->write("EHLO $self", 250);
 		}
 
 		if ($this->username != NULL && $this->password != NULL) {
@@ -194,6 +193,7 @@ class NSmtpMailer extends NObject implements IMailer
  * SMTP mailer exception.
  *
  * @author     David Grudl
+ * @package Nette\Mail
  */
 class NSmtpException extends Exception
 {

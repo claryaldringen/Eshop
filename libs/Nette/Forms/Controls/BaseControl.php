@@ -3,16 +3,12 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
  * @package Nette\Forms\Controls
  */
-
-
-
-
 
 
 
@@ -22,20 +18,23 @@
  * @author     David Grudl
  *
  * @property-read NForm $form
- * @property-read mixed $control
- * @property-read mixed $label
  * @property-read string $htmlName
  * @property   string $htmlId
  * @property-read array $options
- * @property   ITranslator $translator
+ * @property   ITranslator|NULL $translator
  * @property   mixed $value
+ * @property-read bool $filled
+ * @property-write $defaultValue
+ * @property   bool $disabled
+ * @property-read NHtml $control
+ * @property-read NHtml $label
  * @property-read NHtml $controlPrototype
  * @property-read NHtml $labelPrototype
  * @property-read NRules $rules
- * @property-read array $errors
- * @property   bool $disabled
  * @property   bool $required
-*/
+ * @property-read array $errors
+ * @package Nette\Forms\Controls
+ */
 abstract class NFormControl extends NComponent implements IFormControl
 {
 	/** @var string */
@@ -185,6 +184,9 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Sets user-specific option.
+	 * Options recognized by DefaultFormRenderer
+	 * - 'description' - textual or Html object description
+	 *
 	 * @param  string key
 	 * @param  mixed  value
 	 * @return NFormControl  provides a fluent interface
@@ -232,7 +234,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Sets translate adapter.
-	 * @param  ITranslator
 	 * @return NFormControl  provides a fluent interface
 	 */
 	public function setTranslator(ITranslator $translator = NULL)
@@ -277,7 +278,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Sets control's value.
-	 * @param  mixed
 	 * @return NFormControl  provides a fluent interface
 	 */
 	public function setValue($value)
@@ -312,7 +312,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Sets control's default value.
-	 * @param  mixed
 	 * @return NFormControl  provides a fluent interface
 	 */
 	public function setDefaultValue($value)
@@ -381,9 +380,9 @@ abstract class NFormControl extends NComponent implements IFormControl
 		$control->required = $this->isRequired();
 
 		$rules = self::exportRules($this->rules);
-		$rules = substr(json_encode($rules), 1, -1);
-		$rules = preg_replace('#"([a-z0-9]+)":#i', '$1:', $rules);
-		$rules = preg_replace('#(?<!\\\\)"([^\\\\\',]*)"#i', "'$1'", $rules);
+		$rules = substr(PHP_VERSION_ID >= 50400 ? json_encode($rules, JSON_UNESCAPED_UNICODE) : json_encode($rules), 1, -1);
+		$rules = preg_replace('#"([a-z0-9_]+)":#i', '$1:', $rules);
+		$rules = preg_replace('#(?<!\\\\)"(?!:[^a-z])([^\\\\\',]*)"#i', "'$1'", $rules);
 		$control->data('nette-rules', $rules ? $rules : NULL);
 
 		return $control;
@@ -458,7 +457,7 @@ abstract class NFormControl extends NComponent implements IFormControl
 	/**
 	 * Adds a validation condition a returns new branch.
 	 * @param  mixed     condition type
-	 * @param  mixed      optional condition arguments
+	 * @param  mixed     optional condition arguments
 	 * @return NRules      new branch
 	 */
 	public function addCondition($operation, $value = NULL)
@@ -523,12 +522,12 @@ abstract class NFormControl extends NComponent implements IFormControl
 	/**
 	 * @return array
 	 */
-	private static function exportRules($rules)
+	protected static function exportRules($rules)
 	{
 		$payload = array();
 		foreach ($rules as $rule) {
 			if (!is_string($op = $rule->operation)) {
-				$op = callback($op);
+				$op = new NCallback($op);
 				if (!$op->isStatic()) {
 					continue;
 				}
@@ -568,8 +567,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Equal validator: are control's value and second parameter equal?
-	 * @param  IFormControl
-	 * @param  mixed
 	 * @return bool
 	 */
 	public static function validateEqual(IFormControl $control, $arg)
@@ -589,7 +586,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Filled validator: is control filled?
-	 * @param  IFormControl
 	 * @return bool
 	 */
 	public static function validateFilled(IFormControl $control)
@@ -601,7 +597,6 @@ abstract class NFormControl extends NComponent implements IFormControl
 
 	/**
 	 * Valid validator: is control valid?
-	 * @param  IFormControl
 	 * @return bool
 	 */
 	public static function validateValid(IFormControl $control)

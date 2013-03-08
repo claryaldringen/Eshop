@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Template stored in file.
  *
  * @author     David Grudl
+ * @package Nette\Templating
  */
 class NFileTemplate extends NTemplate implements IFileTemplate
 {
@@ -70,7 +67,7 @@ class NFileTemplate extends NTemplate implements IFileTemplate
 
 	/**
 	 * Returns template source code.
-	 * @return source
+	 * @return string
 	 */
 	public function getSource()
 	{
@@ -112,14 +109,13 @@ class NFileTemplate extends NTemplate implements IFileTemplate
 				NCache::FILES => $this->file,
 				NCache::CONSTS => 'NFramework::REVISION',
 			));
-			$cache->release();
 			$cached = $cache->load($this->file);
 		}
 
 		if ($cached !== NULL && $storage instanceof NPhpFileStorage) {
-			NLimitedScope::load($cached['file'], $this->getParams());
+			NLimitedScope::load($cached['file'], $this->getParameters());
 		} else {
-			NLimitedScope::evaluate($compiled, $this->getParams());
+			NLimitedScope::evaluate($compiled, $this->getParameters());
 		}
 	}
 

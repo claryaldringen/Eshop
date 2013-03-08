@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,18 +12,16 @@
 
 
 
-
-
-
-
 /**
  * MIME message part.
  *
  * @author     David Grudl
  *
- * @property   string $encoding
- * @property   string $body
  * @property-read array $headers
+ * @property-write $contentType
+ * @property   string $encoding
+ * @property   mixed $body
+ * @package Nette\Mail
  */
 class NMailMimePart extends NObject
 {
@@ -72,19 +70,15 @@ class NMailMimePart extends NObject
 				$tmp = array();
 			}
 
-			foreach ($value as $email => $name) {
-				if ($name !== NULL && !NStrings::checkEncoding($name)) {
-					throw new InvalidArgumentException("Name is not valid UTF-8 string.");
+			foreach ($value as $email => $recipient) {
+				if ($recipient !== NULL && !NStrings::checkEncoding($recipient)) {
+					NValidators::assert($recipient, 'unicode', "header '$name'");
 				}
-
-				if (!preg_match('#^[^@",\s]+@[^@",\s]+\.[a-z]{2,10}$#i', $email)) {
-					throw new InvalidArgumentException("Email address '$email' is not valid.");
-				}
-
-				if (preg_match('#[\r\n]#', $name)) {
+				if (preg_match('#[\r\n]#', $recipient)) {
 					throw new InvalidArgumentException("Name must not contain line separator.");
 				}
-				$tmp[$email] = $name;
+				NValidators::assert($email, 'email', "header '$name'");
+				$tmp[$email] = $recipient;
 			}
 
 		} else {
@@ -157,6 +151,10 @@ class NMailMimePart extends NObject
 			}
 			return substr($s, 0, -1); // last comma
 
+		} elseif (preg_match('#^(\S+; (?:file)?name=)"(.*)"\z#', $this->headers[$name], $m)) { // Content-Disposition
+			$offset += strlen($m[1]);
+			return $m[1] . '"' . self::encodeHeader($m[2], $offset) . '"';
+
 		} else {
 			return self::encodeHeader($this->headers[$name], $offset);
 		}
@@ -215,7 +213,6 @@ class NMailMimePart extends NObject
 
 	/**
 	 * Adds or creates new multipart.
-	 * @param  NMailMimePart
 	 * @return NMailMimePart
 	 */
 	public function addPart(NMailMimePart $part = NULL)
@@ -227,7 +224,6 @@ class NMailMimePart extends NObject
 
 	/**
 	 * Sets textual body.
-	 * @param  mixed
 	 * @return NMailMimePart  provides a fluent interface
 	 */
 	public function setBody($body)

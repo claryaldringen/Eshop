@@ -71,7 +71,6 @@ class NConfigNeonAdapter extends NObject implements IConfigAdapter
 
 	/**
 	 * Generates configuration in NEON format.
-	 * @param  array
 	 * @return string
 	 */
 	public function dump(array $data)

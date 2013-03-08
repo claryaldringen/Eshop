@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,20 +12,18 @@
 
 
 
-
-
-
-
 /**
  * Mail provides functionality to compose and send both text and MIME-compliant multipart email messages.
  *
  * @author     David Grudl
  *
- * @property   string $from
+ * @property   array $from
  * @property   string $subject
  * @property   string $returnPath
  * @property   int $priority
- * @property   string $htmlBody
+ * @property   mixed $htmlBody
+ * @property   IMailer $mailer
+ * @package Nette\Mail
  */
 class NMail extends NMailMimePart
 {
@@ -183,7 +181,7 @@ class NMail extends NMailMimePart
 	 */
 	private function formatEmail($email, $name)
 	{
-		if (!$name && preg_match('#^(.+) +<(.*)>$#', $email, $matches)) {
+		if (!$name && preg_match('#^(.+) +<(.*)>\z#', $email, $matches)) {
 			return array($matches[2] => $matches[1]);
 		} else {
 			return array($email => $name);
@@ -303,7 +301,7 @@ class NMail extends NMailMimePart
 	{
 		$part = new NMailMimePart;
 		if ($content === NULL) {
-			$content = file_get_contents($file);
+			$content = @file_get_contents($file); // intentionally @
 			if ($content === FALSE) {
 				throw new FileNotFoundException("Unable to read file '$file'.");
 			}
@@ -336,7 +334,6 @@ class NMail extends NMailMimePart
 
 	/**
 	 * Sets the mailer.
-	 * @param  IMailer
 	 * @return NMail  provides a fluent interface
 	 */
 	public function setMailer(IMailer $mailer)
@@ -409,14 +406,18 @@ class NMail extends NMailMimePart
 				}
 			}
 			$alt->setContentType('text/html', 'UTF-8')
-				->setEncoding(preg_match('#[\x80-\xFF]#', $mail->html) ? self::ENCODING_8BIT : self::ENCODING_7BIT)
+				->setEncoding(preg_match('#\S{990}#', $mail->html)
+					? self::ENCODING_QUOTED_PRINTABLE
+					: (preg_match('#[\x80-\xFF]#', $mail->html) ? self::ENCODING_8BIT : self::ENCODING_7BIT))
 				->setBody($mail->html);
 		}
 
 		$text = $mail->getBody();
 		$mail->setBody(NULL);
 		$cursor->setContentType('text/plain', 'UTF-8')
-			->setEncoding(preg_match('#[\x80-\xFF]#', $text) ? self::ENCODING_8BIT : self::ENCODING_7BIT)
+			->setEncoding(preg_match('#\S{990}#', $text)
+				? self::ENCODING_QUOTED_PRINTABLE
+				: (preg_match('#[\x80-\xFF]#', $text) ? self::ENCODING_8BIT : self::ENCODING_7BIT))
 			->setBody($text);
 
 		return $mail;
@@ -479,10 +480,11 @@ class NMail extends NMailMimePart
 			$text = NStrings::replace($this->html, array(
 				'#<(style|script|head).*</\\1>#Uis' => '',
 				'#<t[dh][ >]#i' => " $0",
-				'#[ \t\r\n]+#' => ' ',
+				'#[\r\n]+#' => ' ',
 				'#<(/?p|/?h\d|li|br|/tr)[ >/]#i' => "\n$0",
 			));
 			$text = html_entity_decode(strip_tags($text), ENT_QUOTES, 'UTF-8');
+			$text = NStrings::replace($text, '#[ \t]+#', ' ');
 			$this->setBody(trim($text));
 		}
 	}

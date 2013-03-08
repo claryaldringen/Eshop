@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,43 +12,41 @@
 
 
 
-
-
-
-
 /**
- * Base IMacro implementation. Allowes add multiple macros.
+ * Base IMacro implementation. Allows add multiple macros.
  *
  * @author     David Grudl
+ * @package Nette\Latte\Macros
  */
 class NMacroSet extends NObject implements IMacro
 {
-	/** @var NParser */
-	public $parser;
+	/** @var NLatteCompiler */
+	private $compiler;
 
 	/** @var array */
 	private $macros;
 
 
 
-	public function __construct(NParser $parser)
+	public function __construct(NLatteCompiler $compiler)
 	{
-		$this->parser = $parser;
+		$this->compiler = $compiler;
 	}
 
 
 
-	public function addMacro($name, $begin, $end = NULL)
+	public function addMacro($name, $begin, $end = NULL, $attr = NULL)
 	{
-		$this->macros[$name] = array($begin, $end);
-		$this->parser->addMacro($name, $this);
+		$this->macros[$name] = array($begin, $end, $attr);
+		$this->compiler->addMacro($name, $this);
+		return $this;
 	}
 
 
 
-	public static function install(NParser $parser)
+	public static function install(NLatteCompiler $compiler)
 	{
-		return new self($parser);
+		return new self($compiler);
 	}
 
 
@@ -75,23 +73,40 @@ class NMacroSet extends NObject implements IMacro
 
 	/**
 	 * New node is found.
-	 * @return bool|string
+	 * @return bool
 	 */
 	public function nodeOpened(NMacroNode $node)
 	{
-		$node->isEmpty = !isset($this->macros[$node->name][1]);
-		return $this->compile($node, $this->macros[$node->name][0]);
+		if ($this->macros[$node->name][2] && $node->htmlNode) {
+			$node->isEmpty = TRUE;
+			$this->compiler->setContext(NLatteCompiler::CONTEXT_DOUBLE_QUOTED);
+			$res = $this->compile($node, $this->macros[$node->name][2]);
+			$this->compiler->setContext(NULL);
+			if (!$node->attrCode) {
+				$node->attrCode = "<?php $res ?>";
+			}
+		} else {
+			$node->isEmpty = !isset($this->macros[$node->name][1]);
+			$res = $this->compile($node, $this->macros[$node->name][0]);
+			if (!$node->openingCode) {
+				$node->openingCode = "<?php $res ?>";
+			}
+		}
+		return $res !== FALSE;
 	}
 
 
 
 	/**
 	 * Node is closed.
-	 * @return string
+	 * @return void
 	 */
 	public function nodeClosed(NMacroNode $node)
 	{
-		return $this->compile($node, $this->macros[$node->name][1]);
+		$res = $this->compile($node, $this->macros[$node->name][1]);
+		if (!$node->closingCode) {
+			$node->closingCode = "<?php $res ?>";
+		}
 	}
 
 
@@ -102,16 +117,23 @@ class NMacroSet extends NObject implements IMacro
 	 */
 	private function compile(NMacroNode $node, $def)
 	{
-		$writer = NPhpWriter::using($node, $this->parser->context);
+		$node->tokenizer->reset();
+		$writer = NPhpWriter::using($node, $this->compiler);
 		if (is_string($def)&& substr($def, 0, 1) !== "\0") {
-			$code = $writer->write($def);
+			return $writer->write($def);
 		} else {
-			$code = callback($def)->invoke($node, $writer);
-			if ($code === FALSE) {
-				return FALSE;
-			}
+			return NCallback::create($def)->invoke($node, $writer);
 		}
-		return "<?php $code ?>";
+	}
+
+
+
+	/**
+	 * @return NLatteCompiler
+	 */
+	public function getCompiler()
+	{
+		return $this->compiler;
 	}
 
 }

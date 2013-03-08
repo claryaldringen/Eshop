@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * String tools library.
  *
  * @author     David Grudl
+ * @package Nette\Utils
  */
 class NStrings
 {
@@ -55,9 +52,15 @@ class NStrings
 	 */
 	public static function fixEncoding($s, $encoding = 'UTF-8')
 	{
-		// removes xD800-xDFFF, xFEFF, xFFFF, x110000 and higher
-		$s = @iconv('UTF-16', $encoding . '//IGNORE', iconv($encoding, 'UTF-16//IGNORE', $s)); // intentionally @
-		return str_replace("\xEF\xBB\xBF", '', $s); // remove UTF-8 BOM
+		// removes xD800-xDFFF, xFEFF, x110000 and higher
+		if (strcasecmp($encoding, 'UTF-8') === 0) {
+			$s = str_replace("\xEF\xBB\xBF", '', $s); // remove UTF-8 BOM
+		}
+		if (PHP_VERSION_ID >= 50400) {
+			ini_set('mbstring.substitute_character', 'none');
+			return mb_convert_encoding($s, $encoding, $encoding);
+		}
+		return @iconv('UTF-16', $encoding . '//IGNORE', iconv($encoding, 'UTF-16//IGNORE', $s)); // intentionally @
 	}
 
 
@@ -102,6 +105,36 @@ class NStrings
 
 
 	/**
+	 * Does $haystack contain $needle?
+	 * @param  string
+	 * @param  string
+	 * @return bool
+	 */
+	public static function contains($haystack, $needle)
+	{
+		return strpos($haystack, $needle) !== FALSE;
+	}
+
+
+
+	/**
+	 * Returns a part of UTF-8 string.
+	 * @param  string
+	 * @param  int
+	 * @param  int
+	 * @return string
+	 */
+	public static function substring($s, $start, $length = NULL)
+	{
+		if ($length === NULL) {
+			$length = self::length($s);
+		}
+		return function_exists('mb_substr') ? mb_substr($s, $start, $length, 'UTF-8') : iconv_substr($s, $start, $length, 'UTF-8'); // MB is much faster
+	}
+
+
+
+	/**
 	 * Removes special controls characters and normalizes line endings and spaces.
 	 * @param  string  UTF-8 encoding or 8-bit
 	 * @return string
@@ -113,12 +146,12 @@ class NStrings
 		$s = strtr($s, "\r", "\n"); // Mac
 
 		// remove control characters; leave \t + \n
-		$s = preg_replace('#[\x00-\x08\x0B-\x1F]+#', '', $s);
+		$s = preg_replace('#[\x00-\x08\x0B-\x1F\x7F]+#', '', $s);
 
 		// right trim
-		$s = preg_replace("#[\t ]+$#m", '', $s);
+		$s = preg_replace('#[\t ]+$#m', '', $s);
 
-		// trailing spaces
+		// leading and trailing blank lines
 		$s = trim($s, "\n");
 
 		return $s;
@@ -133,15 +166,15 @@ class NStrings
 	 */
 	public static function toAscii($s)
 	{
-		$s = preg_replace('#[^\x09\x0A\x0D\x20-\x7E\xA0-\x{10FFFF}]#u', '', $s);
+		$s = preg_replace('#[^\x09\x0A\x0D\x20-\x7E\xA0-\x{2FF}\x{370}-\x{10FFFF}]#u', '', $s);
 		$s = strtr($s, '`\'"^~', "\x01\x02\x03\x04\x05");
 		if (ICONV_IMPL === 'glibc') {
 			$s = @iconv('UTF-8', 'WINDOWS-1250//TRANSLIT', $s); // intentionally @
 			$s = strtr($s, "\xa5\xa3\xbc\x8c\xa7\x8a\xaa\x8d\x8f\x8e\xaf\xb9\xb3\xbe\x9c\x9a\xba\x9d\x9f\x9e"
 				. "\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3"
 				. "\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8"
-				. "\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xfe",
-				"ALLSSSSTZZZallssstzzzRAAAALCCCEEEEIIDDNNOOOOxRUUUUYTsraaaalccceeeeiiddnnooooruuuuyt");
+				. "\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xfe\x96",
+				"ALLSSSSTZZZallssstzzzRAAAALCCCEEEEIIDDNNOOOOxRUUUUYTsraaaalccceeeeiiddnnooooruuuuyt-");
 		} else {
 			$s = @iconv('UTF-8', 'ASCII//TRANSLIT', $s); // intentionally @
 		}
@@ -189,7 +222,7 @@ class NStrings
 				return $matches[0] . $append;
 
 			} else {
-				return iconv_substr($s, 0, $maxLen, 'UTF-8') . $append;
+				return self::substring($s, 0, $maxLen) . $append;
 			}
 		}
 		return $s;
@@ -242,7 +275,7 @@ class NStrings
 	 */
 	public static function firstUpper($s)
 	{
-		return self::upper(mb_substr($s, 0, 1, 'UTF-8')) . mb_substr($s, 1, self::length($s), 'UTF-8');
+		return self::upper(self::substring($s, 0, 1)) . self::substring($s, 1);
 	}
 
 
@@ -269,11 +302,11 @@ class NStrings
 	public static function compare($left, $right, $len = NULL)
 	{
 		if ($len < 0) {
-			$left = iconv_substr($left, $len, -$len, 'UTF-8');
-			$right = iconv_substr($right, $len, -$len, 'UTF-8');
+			$left = self::substring($left, $len, -$len);
+			$right = self::substring($right, $len, -$len);
 		} elseif ($len !== NULL) {
-			$left = iconv_substr($left, 0, $len, 'UTF-8');
-			$right = iconv_substr($right, 0, $len, 'UTF-8');
+			$left = self::substring($left, 0, $len);
+			$right = self::substring($right, 0, $len);
 		}
 		return self::lower($left) === self::lower($right);
 	}
@@ -287,7 +320,7 @@ class NStrings
 	 */
 	public static function length($s)
 	{
-		return function_exists('mb_strlen') ? mb_strlen($s, 'UTF-8') : strlen(utf8_decode($s));
+		return strlen(utf8_decode($s)); // fastest way
 	}
 
 
@@ -301,7 +334,7 @@ class NStrings
 	public static function trim($s, $charlist = " \t\n\r\0\x0B\xC2\xA0")
 	{
 		$charlist = preg_quote($charlist, '#');
-		return self::replace($s, '#^['.$charlist.']+|['.$charlist.']+$#u', '');
+		return self::replace($s, '#^['.$charlist.']+|['.$charlist.']+\z#u', '');
 	}
 
 
@@ -317,7 +350,7 @@ class NStrings
 	{
 		$length = max(0, $length - self::length($s));
 		$padLen = self::length($pad);
-		return str_repeat($pad, $length / $padLen) . iconv_substr($pad, 0, $length % $padLen, 'UTF-8') . $s;
+		return str_repeat($pad, $length / $padLen) . self::substring($pad, 0, $length % $padLen) . $s;
 	}
 
 
@@ -333,7 +366,19 @@ class NStrings
 	{
 		$length = max(0, $length - self::length($s));
 		$padLen = self::length($pad);
-		return $s . str_repeat($pad, $length / $padLen) . iconv_substr($pad, 0, $length % $padLen, 'UTF-8');
+		return $s . str_repeat($pad, $length / $padLen) . self::substring($pad, 0, $length % $padLen);
+	}
+
+
+
+	/**
+	 * Reverse string.
+	 * @param  string  UTF-8 encoding
+	 * @return string
+	 */
+	public static function reverse($s)
+	{
+		return @iconv('UTF-32LE', 'UTF-8', strrev(@iconv('UTF-8', 'UTF-32BE', $s)));
 	}
 
 
@@ -351,14 +396,19 @@ class NStrings
 		'), $charlist));
 		$chLen = strlen($charlist);
 
+		static $rand3;
+		if (!$rand3) {
+			$rand3 = md5(serialize($_SERVER), TRUE);
+		}
+
 		$s = '';
 		for ($i = 0; $i < $length; $i++) {
 			if ($i % 5 === 0) {
-				$rand = lcg_value();
-				$rand2 = microtime(TRUE);
+				list($rand, $rand2) = explode(' ', microtime());
+				$rand += lcg_value();
 			}
 			$rand *= $chLen;
-			$s .= $charlist[($rand + $rand2) % $chLen];
+			$s .= $charlist[($rand + $rand2 + ord($rand3[$i % strlen($rand3)])) % $chLen];
 			$rand -= (int) $rand;
 		}
 		return $s;
@@ -375,9 +425,15 @@ class NStrings
 	 */
 	public static function split($subject, $pattern, $flags = 0)
 	{
-		NDebugger::tryError();
+		set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('pattern'=>$pattern)).'-1], EXTR_REFS); // preg_last_error does not return compile errors
+			restore_error_handler();
+			throw new NRegexpException("$message in pattern: $pattern");
+		'));
 		$res = preg_split($pattern, $subject, -1, $flags | PREG_SPLIT_DELIM_CAPTURE);
-		self::catchPregError($pattern);
+		restore_error_handler();
+		if (preg_last_error()) { // run-time error
+			throw new NRegexpException(NULL, preg_last_error(), $pattern);
+		}
 		return $res;
 	}
 
@@ -387,15 +443,24 @@ class NStrings
 	 * Performs a regular expression match.
 	 * @param  string
 	 * @param  string
-	 * @param  int
-	 * @param  int
+	 * @param  int  can be PREG_OFFSET_CAPTURE (returned in bytes)
+	 * @param  int  offset in bytes
 	 * @return mixed
 	 */
 	public static function match($subject, $pattern, $flags = 0, $offset = 0)
 	{
-		NDebugger::tryError();
+		if ($offset > strlen($subject)) {
+			return NULL;
+		}
+		set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('pattern'=>$pattern)).'-1], EXTR_REFS); // preg_last_error does not return compile errors
+			restore_error_handler();
+			throw new NRegexpException("$message in pattern: $pattern");
+		'));
 		$res = preg_match($pattern, $subject, $m, $flags, $offset);
-		self::catchPregError($pattern);
+		restore_error_handler();
+		if (preg_last_error()) { // run-time error
+			throw new NRegexpException(NULL, preg_last_error(), $pattern);
+		}
 		if ($res) {
 			return $m;
 		}
@@ -407,19 +472,28 @@ class NStrings
 	 * Performs a global regular expression match.
 	 * @param  string
 	 * @param  string
-	 * @param  int  (PREG_SET_ORDER is default)
-	 * @param  int
+	 * @param  int  can be PREG_OFFSET_CAPTURE (returned in bytes); PREG_SET_ORDER is default
+	 * @param  int  offset in bytes
 	 * @return array
 	 */
 	public static function matchAll($subject, $pattern, $flags = 0, $offset = 0)
 	{
-		NDebugger::tryError();
+		if ($offset > strlen($subject)) {
+			return array();
+		}
+		set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('pattern'=>$pattern)).'-1], EXTR_REFS); // preg_last_error does not return compile errors
+			restore_error_handler();
+			throw new NRegexpException("$message in pattern: $pattern");
+		'));
 		$res = preg_match_all(
 			$pattern, $subject, $m,
 			($flags & PREG_PATTERN_ORDER) ? $flags : ($flags | PREG_SET_ORDER),
 			$offset
 		);
-		self::catchPregError($pattern);
+		restore_error_handler();
+		if (preg_last_error()) { // run-time error
+			throw new NRegexpException(NULL, preg_last_error(), $pattern);
+		}
 		return $m;
 	}
 
@@ -429,59 +503,50 @@ class NStrings
 	 * Perform a regular expression search and replace.
 	 * @param  string
 	 * @param  string|array
-	 * @param  string|callback
+	 * @param  string|callable
 	 * @param  int
 	 * @return string
 	 */
 	public static function replace($subject, $pattern, $replacement = NULL, $limit = -1)
 	{
-		NDebugger::tryError();
 		if (is_object($replacement) || is_array($replacement)) {
 			if ($replacement instanceof NCallback) {
 				$replacement = $replacement->getNative();
 			}
 			if (!is_callable($replacement, FALSE, $textual)) {
-				NDebugger::catchError($foo);
 				throw new InvalidStateException("Callback '$textual' is not callable.");
 			}
-			$res = preg_replace_callback($pattern, $replacement, $subject, $limit);
 
-			if (NDebugger::catchError($e)) { // compile error
-				$trace = $e->getTrace();
-				if (isset($trace[2]['class']) && $trace[2]['class'] === __CLASS__) {
-					throw new NRegexpException($e->getMessage() . " in pattern: $pattern");
-				}
+			set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('tmp'=>& $tmp)).'-1], EXTR_REFS); // preg_last_error does not return compile errors
+				restore_error_handler();
+				throw new NRegexpException("$message in pattern: $tmp");
+			'));
+			foreach ((array) $pattern as $tmp) {
+				preg_match($tmp, '');
 			}
+			restore_error_handler();
 
-		} elseif (is_array($pattern)) {
-			$res = preg_replace(array_keys($pattern), array_values($pattern), $subject, $limit);
+			$res = preg_replace_callback($pattern, $replacement, $subject, $limit);
+			if ($res === NULL && preg_last_error()) { // run-time error
+				throw new NRegexpException(NULL, preg_last_error(), $pattern);
+			}
+			return $res;
 
-		} else {
-			$res = preg_replace($pattern, $replacement, $subject, $limit);
+		} elseif ($replacement === NULL && is_array($pattern)) {
+			$replacement = array_values($pattern);
+			$pattern = array_keys($pattern);
 		}
-		self::catchPregError($pattern);
+
+		set_error_handler(create_function('$severity, $message', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('pattern'=>$pattern)).'-1], EXTR_REFS); // preg_last_error does not return compile errors
+			restore_error_handler();
+			throw new NRegexpException("$message in pattern: " . implode(\' or \', (array) $pattern));
+		'));
+		$res = preg_replace($pattern, $replacement, $subject, $limit);
+		restore_error_handler();
+		if (preg_last_error()) { // run-time error
+			throw new NRegexpException(NULL, preg_last_error(), implode(' or ', (array) $pattern));
+		}
 		return $res;
-	}
-
-
-
-	/** @internal */
-	public static function catchPregError($pattern)
-	{
-		if (NDebugger::catchError($e)) { // compile error
-			throw new NRegexpException($e->getMessage() . " in pattern: $pattern");
-
-		} elseif (preg_last_error()) { // run-time error
-			static $messages = array(
-				PREG_INTERNAL_ERROR => 'Internal error',
-				PREG_BACKTRACK_LIMIT_ERROR => 'Backtrack limit was exhausted',
-				PREG_RECURSION_LIMIT_ERROR => 'Recursion limit was exhausted',
-				PREG_BAD_UTF8_ERROR => 'Malformed UTF-8 data',
-				5 => 'Offset didn\'t correspond to the begin of a valid UTF-8 code point', // PREG_BAD_UTF8_OFFSET_ERROR
-			);
-			$code = preg_last_error();
-			throw new NRegexpException((isset($messages[$code]) ? $messages[$code] : 'Unknown error') . " (pattern: $pattern)", $code);
-		}
 	}
 
 }
@@ -490,7 +555,24 @@ class NStrings
 
 /**
  * The exception that indicates error of the last Regexp execution.
+ * @package Nette\Utils
  */
 class NRegexpException extends Exception
 {
+	static public $messages = array(
+		PREG_INTERNAL_ERROR => 'Internal error',
+		PREG_BACKTRACK_LIMIT_ERROR => 'Backtrack limit was exhausted',
+		PREG_RECURSION_LIMIT_ERROR => 'Recursion limit was exhausted',
+		PREG_BAD_UTF8_ERROR => 'Malformed UTF-8 data',
+		5 => 'Offset didn\'t correspond to the begin of a valid UTF-8 code point', // PREG_BAD_UTF8_OFFSET_ERROR
+	);
+
+	public function __construct($message, $code = NULL, $pattern = NULL)
+	{
+		if (!$message) {
+			$message = (isset(self::$messages[$code]) ? self::$messages[$code] : 'Unknown error') . ($pattern ? " (pattern: $pattern)" : '');
+		}
+		parent::__construct($message, $code);
+	}
+
 }

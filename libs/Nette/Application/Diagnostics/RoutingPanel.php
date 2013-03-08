@@ -3,7 +3,7 @@
 /**
  * This file is part of the Nette Framework (http://nette.org)
  *
- * Copyright (c) 2004, 2011 David Grudl (http://davidgrudl.com)
+ * Copyright (c) 2004 David Grudl (http://davidgrudl.com)
  *
  * For the full copyright and license information, please view
  * the file license.txt that was distributed with this source code.
@@ -12,14 +12,11 @@
 
 
 
-
-
-
-
 /**
  * Routing debugger for Debug Bar.
  *
  * @author     David Grudl
+ * @package Nette\Application\Diagnostics
  */
 class NRoutingDebugger extends NObject implements IBarPanel
 {
@@ -37,17 +34,14 @@ class NRoutingDebugger extends NObject implements IBarPanel
 
 
 
-	public static function initialize(NApplication $application, IHttpRequest $httpRequest)
+	public static function initializePanel(NApplication $application)
 	{
-		NDebugger::$bar->addPanel(new self($application->getRouter(), $httpRequest));
-		NDebugger::$blueScreen->addPanel(create_function('$e', 'extract(NClosureFix::$vars['.NClosureFix::uses(array('application'=>$application)).'], EXTR_REFS);
-			if ($e === NULL) {
-				return array(
-					\'tab\' => \'Nette Application\',
-					\'panel\' => \'<h3>Requests</h3>\' . NDebugHelpers::clickableDump($application->getRequests())
-						. \'<h3>Presenter</h3>\' . NDebugHelpers::clickableDump($application->getPresenter())
-				);
-			}
+		NDebugger::$blueScreen->addPanel(create_function('$e', 'extract($GLOBALS[0]['.array_push($GLOBALS[0], array('application'=>$application)).'-1], EXTR_REFS);
+			return $e ? NULL : array(
+				\'tab\' => \'Nette Application\',
+				\'panel\' => \'<h3>Requests</h3>\' . NDebugHelpers::clickableDump($application->getRequests())
+					. \'<h3>Presenter</h3>\' . NDebugHelpers::clickableDump($application->getPresenter())
+			);
 		'));
 	}
 
@@ -93,20 +87,24 @@ class NRoutingDebugger extends NObject implements IBarPanel
 	 * @param  IRouter
 	 * @return void
 	 */
-	private function analyse($router)
+	private function analyse($router, $module = '')
 	{
 		if ($router instanceof NRouteList) {
 			foreach ($router as $subRouter) {
-				$this->analyse($subRouter);
+				$this->analyse($subRouter, $module . $router->getModule());
 			}
 			return;
 		}
 
+		$matched = 'no';
 		$request = $router->match($this->httpRequest);
-		$matched = $request === NULL ? 'no' : 'may';
-		if ($request !== NULL && empty($this->request)) {
-			$this->request = $request;
-			$matched = 'yes';
+		if ($request) {
+			$request->setPresenterName($module . $request->getPresenterName());
+			$matched = 'may';
+			if (empty($this->request)) {
+				$this->request = $request;
+				$matched = 'yes';
+			}
 		}
 
 		$this->routers[] = array(
@@ -115,6 +113,7 @@ class NRoutingDebugger extends NObject implements IBarPanel
 			'defaults' => $router instanceof NRoute || $router instanceof NSimpleRouter ? $router->getDefaults() : array(),
 			'mask' => $router instanceof NRoute ? $router->getMask() : NULL,
 			'request' => $request,
+			'module' => rtrim($module, ':')
 		);
 	}
 
