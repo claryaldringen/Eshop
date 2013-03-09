@@ -122,8 +122,12 @@ class ProductModel extends BaseModel{
 		else $type = 'normal';
 
 		// Vytvoreni dotazu dle typu slozky
-		if($type == 'normal')$sqlPart = dibi::translate("owner IN ($ids)");
-		else $sqlPart = dibi::translate("id IN (SELECT id_prod FROM collections JOIN variants V ON V.vlastnik=P.id WHERE id_coll=%i)", $owner);
+		if($type == 'normal')$sqlPart = "owner IN ($ids)";
+		else
+		{
+			$dibiTranslator = new DibiTranslator();
+			$sqlPart = $dibiTranslator->translate("id IN (SELECT id_prod FROM collections JOIN variants V ON V.vlastnik=P.id WHERE id_coll=%i)", $owner);
+		}
 
 		$result = dibi::query("
 			SELECT P.id,link_$lang AS link,P.jmeno_$lang AS jmeno,popis_$lang AS popis,dph,(V.cena*(1+(dph/100))) AS scena
