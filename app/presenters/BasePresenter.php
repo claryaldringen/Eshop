@@ -88,7 +88,7 @@ abstract class BasePresenter extends NPresenter{
 			$session = NEnvironment::getSession('shop');
 			if($session->toorder)$this->redirect('order');
 		}
-		if($user->isInRole('2'))$this->redirect('Kategorie:default');
+		if($user->isInRole(Authenticator::ADMIN))$this->redirect('Kategorie:default');
 		else $this->redirect('this');
 	}
 
