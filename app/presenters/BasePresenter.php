@@ -2,23 +2,23 @@
 abstract class BasePresenter extends NPresenter{
 
 	public $lang = 'cs';
-	protected $user;
 	protected $userdata;
 	private $models = array();
 
 	public function startup()
 	{
 		parent::startup();
-		$this->user = NEnvironment::getUser();
-		if($this->user->isInRole('1')) $this->userdata = NEnvironment::getUser()->getIdentity()->getData();
-		else $this->userdata = NULL;
-		$this->template->registerHelper('money', create_function('$s', 'return number_format($s, 0, NULL, " ");'));
-		if($this->getName() != 'Frontend' && !$this->user->isInRole('2'))$this->redirect('Frontend:default');
-		$this->template->registerHelperLoader('MyHelpers::loader');
-		CnbNette::register($this->getTemplate());
 		$user = $this->getUser();
 		$user->setAuthenticator($this->getInstanceOf('Authenticator'));
-		$this->context->addService('authenticator', $this->getInstanceOf('Authenticator'));
+		if($this->user->isInRole(1)) $this->userdata = NEnvironment::getUser()->getIdentity()->getData();
+		else $this->userdata = NULL;
+		$this->template->registerHelper('money', create_function('$s', 'return number_format($s, 0, NULL, " ");'));
+		if($this->getName() != 'Frontend' && !$this->user->isInRole(2))
+		{
+			$this->redirect('Frontend:default');
+		}
+		$this->template->registerHelperLoader('MyHelpers::loader');
+		CnbNette::register($this->getTemplate());
 	}
 
 	function beforeRender()

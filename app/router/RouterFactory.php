@@ -28,13 +28,13 @@ class RouterFactory
 						'heslo-odeslano'=>'passsend'
 		));
 
-		$router[] = new NRoute('<action registrace|kosik|objednavka|dekujeme|objednavky|podminky|kontakt|hledani|zapomenute-heslo|heslo-odeslano>.html',array(
-				'presenter' => 'Frontend',
+		$router[] = new NRoute('admin/<action>/<presenter kategorie|orders|payment|product|users|settings|texts>.html',array(
+				'presenter' => 'Kategorie',
 				'action' => 'default',
 		));
 
-		$router[] = new NRoute('admin/<action>/<presenter kategorie|orders|payment|product|users|settings|texts>.html',array(
-				'presenter' => 'kategorie',
+		$router[] = new NRoute('<action registrace|kosik|objednavka|dekujeme|objednavky|podminky|kontakt|hledani|zapomenute-heslo|heslo-odeslano>.html',array(
+				'presenter' => 'Frontend',
 				'action' => 'default',
 		));
 
