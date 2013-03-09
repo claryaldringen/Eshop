@@ -10,10 +10,10 @@ abstract class BasePresenter extends NPresenter{
 		parent::startup();
 		$user = $this->getUser();
 		$user->setAuthenticator($this->getInstanceOf('Authenticator'));
-		if($this->user->isInRole(1)) $this->userdata = NEnvironment::getUser()->getIdentity()->getData();
+		if($this->user->isInRole(Authenticator::REGISTERED)) $this->userdata = $this->getUser()->getIdentity()->getData();
 		else $this->userdata = NULL;
 		$this->template->registerHelper('money', create_function('$s', 'return number_format($s, 0, NULL, " ");'));
-		if($this->getName() != 'Frontend' && !$this->user->isInRole(2))
+		if($this->getName() != 'Frontend' && !$this->user->isInRole(Authenticator::ADMIN))
 		{
 			$this->redirect('Frontend:default');
 		}

@@ -77,7 +77,7 @@ class FrontendPresenter extends BasePresenter
 
 		$form->onSuccess[]= array($this, 'processRegistration');
 
-		if($this->user->isInRole('1'))
+		if($this->user->isInRole(Authenticator::REGISTERED))
 		{
 			$form->setDefaults($model->getUser($this->userdata['id']));
 			$form->addSubmit('register', 'Uložit');
@@ -219,7 +219,7 @@ class FrontendPresenter extends BasePresenter
 		$model = $this->getInstanceOf('ProductModel');
 		$form = $button->getForm();
 		$model->setBasket($this->user->getIdentity()->data['id'],$form->getValues());
-		if($this->user->isInRole('3'))
+		if($this->user->isInRole(Authenticator::GUEST))
 		{
 			$session = NEnvironment::getSession('shop');
 			$session->toorder = true;

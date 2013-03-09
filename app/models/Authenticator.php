@@ -2,6 +2,11 @@
 class Authenticator extends BaseModel implements IAuthenticator
 {
 
+	const UNREGISTERED = 0;
+	const REGISTERED = 1;
+	const ADMIN = 2;
+	const GUEST = 3;
+
     public function authenticate(array $credentials)
     {
         $username = $credentials[self::USERNAME];
@@ -20,7 +25,7 @@ class Authenticator extends BaseModel implements IAuthenticator
             throw new NAuthenticationException("Špatné heslo.", self::INVALID_CREDENTIAL);
         	}
         }
- 
+
 				dibi::query("UPDATE users SET lastlogin=%i WHERE id=%i",time(),$row->id);
 				return new NIdentity($row->realname,$row->registrovan,$row); // vrátíme identitu
     }

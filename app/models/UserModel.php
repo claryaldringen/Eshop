@@ -8,7 +8,7 @@ class UserModel extends BaseModel{
 		$heslo = $data['heslo'];
 		$data['heslo'] = md5($heslo);
 		$user = NEnvironment::getUser();
-		if($user->isInRole('3'))
+		if($user->isInRole(Authenticator::GUEST))
 		{
 			$userdata = $user->getIdentity()->getData();
 			$data['registrovan'] = 1;

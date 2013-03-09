@@ -2,14 +2,14 @@
 	<div class="discuss-message">
 		<div class="discuss-title">
 			{$message->datum|date:'%T %d.%m.%Y'} <b>{$message->user}</b>
-			{if $user->isInRole('2')}
+			{if $user->isInRole(Authenticator::ADMIN)}
 			<span><a href="{link delete! 'id'=>$message->id}">smazat</a></span>
 			{/if}
 		</div>
 		<div class="discuss-text">{!$message->text}</div>
 	</div>
 {/foreach}
-{if $user->isInRole('1')}
+{if $user->isInRole(Authenticator::REGISTERED)}
 	{control discussForm, begin}
 	{control discussForm, errors}
 	{$control['discussForm']['text']->control}
