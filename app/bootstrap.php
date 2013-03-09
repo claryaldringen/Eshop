@@ -8,7 +8,7 @@ $configurator = new NConfigurator;
 
 // Enable Nette Debugger for error visualisation & logging
 //$configurator->setDebugMode(TRUE);
-$configurator->enableDebugger(dirname(__FILE__) . '/../log');
+$configurator->enableDebugger(dirname(__FILE__) . '/../log', 'info@freetech.cz');
 
 // Enable RobotLoader - this will load all classes automatically
 $configurator->setTempDirectory(dirname(__FILE__) . '/../temp');
