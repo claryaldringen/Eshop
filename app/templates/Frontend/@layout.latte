@@ -11,7 +11,7 @@
     <title>Mercatores - {$title}</title>
 		<link rel="stylesheet" media="screen,projection,tv" href="{$basePath}/css/style.css" type="text/css">
 		<link rel="stylesheet" type="text/css" href="{$basePath}/css/jquery.lightbox-0.5.css" media="screen" />
-		
+
 		<script src="{$basePath}/js/jquery.js" type="text/javascript"></script>
 		<script src="{$basePath}/js/jquery.livequery.js" type="text/javascript"></script>
 		<script src="{$basePath}/js/jquery.editinplace.0.4.js" type="text/javascript"></script>
@@ -20,7 +20,7 @@
 		<script src="{$basePath}/js/netteForms.js" type="text/javascript"></script>
 		<script src="{$basePath}/js/jquery.lightbox-0.5.js" type="text/javascript" ></script>
 		<script src="{$basePath}/ckeditor/ckeditor.js" type="text/javascript"></script>
-		<!--[if IE]> 
+		<!--[if IE]>
 		<style type="text/css">
 			select{ background:white; color:black !important;height:20px; }
 		</style>
@@ -33,11 +33,11 @@
 					<img class="left" width="282" height="73" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src='/images/logo.png'); _width:1px; _height:1; " src="/images/logo.png">
 				</a>
 				<div class="login">
-					{include 'loginBox.phtml'}
+					{include 'loginBox.latte'}
 				</div>
-				{include 'menu.phtml'}
+				{include 'menu.latte'}
 				{snippet basket}
-				{include 'basketBox.phtml'}
+				{include 'basketBox.latte'}
 				{/snippet}
 				<div class="find">
 					{control searchForm, begin}
@@ -58,8 +58,8 @@
 			</div>
   		<div id="main">
   			<div class="sideleft">
-  			{include 'treeBox.phtml'}
-  			{include 'bestBox.phtml'}
+  			{include 'treeBox.latte'}
+  			{include 'bestBox.latte'}
   			</div>
  				<div class="content">
 				{foreach $flashes as $flash}
@@ -68,17 +68,17 @@
   			{include #content}
   			</div>
   			{if !empty($suplements) && empty($complements)}
-  				{include 'suplementBox.phtml'}
-  				{include 'newsBox.phtml'}
+  				{include 'suplementBox.latte'}
+  				{include 'newsBox.latte'}
   			{elseif empty($suplements) && !empty($complements)}
-  				{include 'complementBox.phtml'}
-  				{include 'recomendedBox.phtml'}
+  				{include 'complementBox.latte'}
+  				{include 'recomendedBox.latte'}
   			{elseif !empty($suplements) && !empty($complements)}
-  				{include 'complementBox.phtml'}
-  				{include 'suplementBox.phtml'}
+  				{include 'complementBox.latte'}
+  				{include 'suplementBox.latte'}
   			{else}
-  				{include 'newsBox.phtml'}
-  				{include 'recomendedBox.phtml'}
+  				{include 'newsBox.latte'}
+  				{include 'recomendedBox.latte'}
   			{/if}
   		</div>
   		<div id="footer">
