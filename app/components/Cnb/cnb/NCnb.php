@@ -14,7 +14,7 @@ class NCnb extends Cnb/*History*/
      * time for Nette session [s]
      * @var int
      */
-    protected $netteExpiration   =1209600;
+    protected $netteExpiration   = 1206000;
 
     /**
      * (non-PHPdoc)
