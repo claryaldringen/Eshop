@@ -1,72 +1,101 @@
 {block #content}
-
-<h2>{$mkategorie->jmeno}</h2>
-{snippet popis}
+<div style="float: left;width: 65%;">
+	<div><h2 class="categoryh2">{$mkategorie->jmeno}</h2></div>
+{*snippet popis}
 	{!$mkategorie->text}
 	{if isset($mkategorie->length) && $mkategorie->length > 300}
 		<a href="{plink showMore!}" class="ajax">více</a>
 	{/if}
 {/snippet}
-{control vp}
-{foreach $products as $product}
-	<div class="produkt">
-		<div class="nadpis">
-			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
-			<h2>{$product->jmeno|truncate:25}</h2>
-			</a>
+{control vp*}
+
+{foreach $categories as $category}
+	<a href="/{$category->path}">
+		<div class="categorybox{$mkategorie->view_type}">
+			<div class="windowtitle">
+				<h2>{$category->jmeno}</h2>
+				<div class="ridge"></div>
+			</div>
+			<img height="120" style="max-height: 120px; max-width:164px; _width: expression(document.body.clientWidth > 164? '164px' : 'auto' );" src="{$baseUri}/images/uploaded/medium250{*$category->image*}.jpg">
 		</div>
- 			<div class="sleva">{if $product->sleva > 0}{$product->sleva}% sleva{/if}</div>
- 			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
+	</a>
+{/foreach}
+{if $mkategorie->view_type == 2}
+	<table class="products">
+		<tr>
+			<th colspan="3">
+				<div class="tableheader">
+					<div class="lefthref top">
+						<a href="/{$prev}"><img src="/images/leftarrow.png"></a>
+					</div>
+					<div class="righthref sort">
+						<a href="/{$next}"><img src="/images/list.png"></a>
+						<a href="/{$next}"><img src="/images/table.png"></a>
+						<a href="/{$next}"><img src="/images/rightarrow.png"></a>
+					</div>
+					{control sortForm, begin}
+					{control sortForm, errors}
+					{$control['sortForm']['sort']->label}
+					{$control['sortForm']['sort']->control}
+					{control sortForm, end}
+				</div>
+			</th>
+		</tr>
+{/if}
+{foreach $products as $product}
+	{if $mkategorie->view_type != 2}
+	<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
+		<div class="categorybox{$mkategorie->view_type}">
+			<div class="windowtitle">
+				<h2>{$product->jmeno|truncate:25}</h2>
+				<div class="ridge"></div>
+			</div>
+			<img height="120" style="max-width:164px; _width: expression(document.body.clientWidth > 164? '164px' : 'auto' );" src="{$baseUri}/images/uploaded/medium{$product->image}.jpg">
+		</div>
+	</a>
+	{else}
+	<tr {if $iterator->isLast()}class="last"{/if}>
+		<td class="tdimg">
+			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
 				<img height="120" style="max-width:164px; _width: expression(document.body.clientWidth > 164? '164px' : 'auto' );" src="{$baseUri}/images/uploaded/medium{$product->image}.jpg">
 			</a>
+		</td>
+		<td>
 			<a href="{plink detail 'path'=>$product->path,'produkt'=>$product->link}">
-				{if isset($product->properties)}
-					<table>
-					{foreach $product->properties as $prop}
-						{if $iterator->getCounter() < 3}
-						<tr><td>{$prop->jmeno}:</td><td>{$prop->prop}</td></tr>
-						{/if}
-					{/foreach}
-					</table>
-				{else}
-				<p>
-				{!$product->popis|stripTags|truncate:120}
-				</p>
-				{/if}
+			<h2>{$product->jmeno}</h2>
+			{!$product->popis|truncate: 256}
 			</a>
-		<div class="cena">
-		{if $product->pocetVar == 1}
-			
-			<div class="cenastara">{if $product->sklad}{$product->sklad}x skladem{/if}</div>
-			<div class="cenanova">
-			{if isset($product->cenastara)}<span class="cenastara">{$product->cenastara|currency:czk:$mena}</span>{/if}
-			{if $showprices}{$product->cena|currency:czk:$mena}{/if}
-			</div>
-			</div>
-			<div class="productform">
-			{if $showprices}
-			{control $product->form begin}
-			{control $product->form errors}
-			{$product->form['pocet']->control}
-			{$product->form['tobasket']->control}
-			{control $product->form end}
+		</td>
+		<td>
+			{if $product->pocetVar == 1}
+				{if isset($product->cenastara)}<span class="cenastara">{$product->cenastara|currency:czk:$mena}</span>{/if}
+				{if $showprices}<h2>{$product->cena|currency:czk:$mena}</h2>{/if}
+			{else}
+
 			{/if}
-			</div>
-		{elseif isset($product->scena) && $product->scena}
-			<div class="cenastara">{if $product->sklad}Skladem{/if}</div>
-			<div class="cenanova"><span class="cenacislo">od</span> {$product->scena|currency:czk:$mena}</div>
-			</div>
-		{else}
-			<div class="cenastara">{if $product->sklad}Skladem{/if}</div>
-				<div class="cenanova">
-					{if $showprices}
-					<span class="cenacislo">od</span>
-					{if isset($product->cenastara)}<span class="cenastara">{$product->cenastara|currency:czk:$mena}</span>{/if}
-			 		{$product->cena|currency:czk:$mena}
-					{/if}
-			 </div>
-			</div>
-		{/if}
-		</div>
+			{if $product->sklad}
+				<span class="green">{$product->sklad}x skladem</span>
+			{else}
+				<span class="orange">Expedováno do {$product->dodani} pracovních dnů</span>
+			{/if}
+		</td>
+	</tr>
+	{/if}
 {/foreach}
-{control vp}
+{if $mkategorie->view_type == 2}
+		<tr>
+			<th colspan="3">
+				<div class="tablefooter">
+					<div class="lefthref">
+						<a href="/{$parent->path}"><img src="/images/leftarrow.png">&nbsp;{$parent->jmeno}</a>
+					</div>
+					<div class="righthref">
+						<a href=""><img src="/images/toparrow.png">Zpět na začátek&nbsp;</a>
+					</div>
+				</div>
+			</th>
+		</tr>
+	</table>
+{/if}
+{*control vp*}
+</div>

@@ -41,3 +41,7 @@ WHERE `id` = '2' COLLATE utf8_bin LIMIT 1;
 
 INSERT INTO `page` (`name`)
 VALUES ('Podmínky');
+
+ALTER TABLE `categories`
+ADD `view_type` tinyint NOT NULL DEFAULT '0',
+COMMENT='' ENGINE='InnoDB';

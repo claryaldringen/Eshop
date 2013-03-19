@@ -30,91 +30,55 @@
 		<div id="page">
 			<div id="header">
 				<a href="/">
-					<img class="left" width="282" height="73" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src='/images/logo.png'); _width:1px; _height:1; " src="/images/logo.png">
+					<img class="left" style="filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src='/images/logo.png'); _width:1px; _height:1; " src="/images/logo.png">
 				</a>
-				<div class="login">
-					{include 'loginBox.latte'}
-				</div>
 				{include 'menu.latte'}
-				{snippet basket}
-				{include 'basketBox.latte'}
-				{/snippet}
-				<div class="find">
-					{control searchForm, begin}
-					{control searchForm, errors}
-					{$control['searchForm']['search']->control}
-					{$control['searchForm']['ok']->control}
-					{control searchForm, end}
-				</div>
-				{if isset($mkategorie)}
-				<div class="sort">
-					{control sortForm, begin}
-					{control sortForm, errors}
-					{$control['sortForm']['sort']->label}
-					{$control['sortForm']['sort']->control}
-					{control sortForm, end}
-				</div>
-				{/if}
 			</div>
   		<div id="main">
   			<div class="sideleft">
   			{include 'treeBox.latte'}
-  			{include 'bestBox.latte'}
   			</div>
+				<div class="sideright">
+					<div class="contact">
+						<img src="/images/telico.png" class="telico">
+						<span class="telefon">736 402 064</span>
+						<p>
+						<a href="mailto:shop@mstores.cz" class="email">shop@mstores.cz</a>
+						</p>
+					</div>
+					{snippet basket}
+						{include 'basketBox.latte'}
+					{/snippet}
+					<div class="login">
+						{include 'loginBox.latte'}
+					</div>
+					<a href="" class="askhelp">
+						<img src="/images/infoico.png" class="infoico">
+						<span class="helpme">Potřebujete poradit?</span>
+						<br><br>
+						<p>Napište nám a my Vám rádi poradíme.</p>
+					</a>
+				</div>
  				<div class="content">
 				{foreach $flashes as $flash}
 					<div class="flash {$flash->type}" onClick="$(this).hide()">{!$flash->message}</div>
 				{/foreach}
   			{include #content}
   			</div>
-  			{if !empty($suplements) && empty($complements)}
-  				{include 'suplementBox.latte'}
-  				{include 'newsBox.latte'}
-  			{elseif empty($suplements) && !empty($complements)}
-  				{include 'complementBox.latte'}
-  				{include 'recomendedBox.latte'}
-  			{elseif !empty($suplements) && !empty($complements)}
-  				{include 'complementBox.latte'}
-  				{include 'suplementBox.latte'}
-  			{else}
-  				{include 'newsBox.latte'}
-  				{include 'recomendedBox.latte'}
-  			{/if}
-  		</div>
-  		<div id="footer">
-  			<br>
-  			<div style="float:right;margin-right:10px;text-align:left;">
-  			Jan Adamčík<br>
-  			Ptice 10<br>
-  			252 18 - p. Úhonice<br>
-  			IČ: 87644819<br>
-  			+420 728 866 474<br>
-  			<a href="mailto:shop@mercatores.cz">shop@mercatores.cz</a>
-  			</div>
-  			<table class="footer">
-  				<tr>
-  					<td><a href="http://www.landsknechti.cz" target="_blank">www.landsknechti.cz</a> - Landsknechti A.D. 1525</td>
-  				</tr>
-  				<tr>
-  					<td><a href="http://www.livinghistory.cz" target="_blank">www.livinghistory.cz</a> - Český server o "živé historii"</td>
-  				</tr>
-  				<tr>
-  					<td><a href="http://forum.brodec.org" target="_blank">forum.brodec.org</a> - Fórum zabývající se obdobím pozdního středověku</td>
-  				</tr>
-  				<tr>
-  					<td><a href="http://www.arsmaiorum.eu" target="_blank">www.arsmaiorum.eu</a> - Společnost pro zachování a rozvoj evropských bojových umění</td>
-  				</tr>
-  			</table>
-  		</div>
- 			<div class="link">
- 			 <div class="afterfooter">
- 			 	<a href="http://www.nette.org" target="_blank" title="Tato aplikace je postavena na frameworku Nette"><img src="/images/nette-powered.gif"></a>
- 			 	<a href="http://www.dibiphp.com" target="_blank"  title="Tato aplikace je používá databázový layer Dibi"><img src="/images/dibi-powered.gif"></a>
- 			 	<a href="http://validator.w3.cz/check?uri={plink '//this'}" target="_blank" title="Tento dokument je validní HTML5"><img src="/images/html5.png" height="14"></a>
- 			 </div>
- 			 ©2008-2010 Mercatores • Powered by <a href="http://www.softweb.cz" title="tvorba webových aplikací">Softweb.cz</a>
   		</div>
     </div>
+  	<footer>
+			<table>
+				<tr>
+					<td>&nbsp;&nbsp;<a href="">Jak nakupovat</a>&nbsp;&nbsp;</td>
+					<td>&nbsp;&nbsp;<a href="">Možnosti dopravy</a>&nbsp;&nbsp;</td>
+					<td>&nbsp;&nbsp;<a href="">Možnosti platby</a>&nbsp;&nbsp;</td>
+					<td>&nbsp;&nbsp;<a href="">Reklamace</a>&nbsp;&nbsp;</td>
+					<td>&nbsp;&nbsp;<a href="">Sleva pro studenty</a>&nbsp;&nbsp;</td>
+					<td style="border: none;">&nbsp;&nbsp;<a href="">Akce</a>&nbsp;&nbsp;</td>
+				</tr>
+			</table>
+ 		</footer>
     {control ga}
   </body>
 </html>

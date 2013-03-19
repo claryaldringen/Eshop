@@ -59,13 +59,15 @@ abstract class BasePresenter extends NPresenter{
 	{
 		$form = new NAppForm($this,'loginNForm');
 		$form->addText('nick','Uživatelské jméno:')
+			->setAttribute('placeholder', 'přihlašovací jméno')
 		  ->addRule(NForm::FILLED,'Musíte vyplnit uživatelské jméno!')
 		  ->getControlPrototype()->class('vypln');
 		$form->addPassword('password','Heslo:')
+			->setAttribute('placeholder', 'heslo')
 		  ->addRule(NForm::FILLED,'Musíte vyplnit heslo!')
 		  ->getControlPrototype()->class('vypln');
 		$form->addCheckbox('stay','neodhlašovat');
-		$form->addSubmit('login','Přihlásit')->getControlPrototype()->class('log');
+		$form->addSubmit('login','Přihlásit se')->getControlPrototype()->class('log');
 		$form->onSuccess[] = array($this,'loginNFormSubmited');
 		return $form;
 	}

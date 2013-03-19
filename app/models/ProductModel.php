@@ -130,7 +130,7 @@ class ProductModel extends BaseModel{
 		}
 
 		$result = dibi::query("
-			SELECT P.id,link_$lang AS link,P.jmeno_$lang AS jmeno,popis_$lang AS popis,dph,(V.cena*(1+(dph/100))) AS scena
+			SELECT P.id,link_$lang AS link,P.jmeno_$lang AS jmeno,popis_$lang AS popis,dph,(V.cena*(1+(dph/100))) AS scena,dodani
 			FROM products P JOIN variants V ON V.vlastnik=P.id
 			WHERE %sql AND P.status='ok' AND show_$lang=1 GROUP BY id ORDER BY jmeno %ofs %lmt",
 		$sqlPart, $offset, $limit);

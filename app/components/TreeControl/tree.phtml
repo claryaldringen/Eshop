@@ -1,10 +1,5 @@
 {block #tree}
 	{foreach $tree as $cat}
-		<div class="underline" style="padding-left:{$cat['level']*10}px">
-			<a class="{if isset($cat['child'])}menuactual{else}menuhref{/if}" href="{plink Frontend:kategorie 'path'=>$cat['link']}">{$cat['jmeno']}</a>
-		</div>
-		{if isset($cat['child'])}
-			{include #tree, 'tree'=>$cat['child']}
-		{/if}
+		<a class="category {if isset($cat['child'])}menuactual{else}menuhref{/if}" href="{plink Frontend:kategorie 'path'=>$cat['link']}">{$cat['jmeno']}</a>
 	{/foreach}
 {/block}

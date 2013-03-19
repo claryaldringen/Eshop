@@ -1,24 +1,22 @@
-  {if $user->isInRole(Authenticator::REGISTERED)}
-  	<a href="{plink Frontend:registration}">
-  	{$user->getIdentity()->data['realname']}&nbsp;
-  	({$user->getIdentity()->data['login']})
+	<div class="windowtitle">Přihlášení</div>
+	{if $user->isInRole(Authenticator::REGISTERED)}
+  	<div class="logged">
+		Přihlášený uživatel:<br><br>
+		<a href="{plink Frontend:registration}">
+  	{$user->getIdentity()->data['realname']}
   	</a>
-  	&nbsp;&nbsp;&nbsp;
-  	<a href="{plink logout!}">Odhlásit se</a>
+		<br><br>
+		<a href="{plink logout!}" class="logoutlink"><button>&nbsp;Odhlásit se&nbsp;</button></a>
+		</div>
   {else}
   	{widget loginNForm, begin}
   	{widget loginNForm, errors}
   	<table>
-  		<tr>
-  			<td>{$control['loginNForm']['nick']->control}</td>
-		  	<td>{$control['loginNForm']['password']->control}</td>
-  			<td>{$control['loginNForm']['login']->control}</td>
-  		</tr>
-  		<tr>
-  			<td><a href="{plink forgotten}">Zapomenuté heslo?</a></td>
-  			<td><a href="{plink registration}">Registrovat se</a></td>
-  			<td></td>
-  		</tr>
+  		<tr><td>{$control['loginNForm']['nick']->control}</td></tr>
+		  <tr><td>{$control['loginNForm']['password']->control}</td></tr>
+  		<tr><td>{$control['loginNForm']['login']->control}</td></tr>
+  		<tr><td class="loginlinks"><a href="{plink registration}">Registrovat se</a></td></tr>
+  		<tr><td class="loginlinks"><a href="{plink forgotten}">Zapomenuté heslo</a></td></tr>
   	</table>
   	{widget loginNForm, end}
   {/if}

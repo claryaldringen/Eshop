@@ -558,16 +558,43 @@ class FrontendPresenter extends BasePresenter
     $paginator->itemCount = $model2->getProductCount($id,$this->lang);
 
     $this->template->path = $path;
-		$this->template->mkategorie = $model1->getCategory($id,$this->lang);
-		$this->template->title = $this->template->mkategorie->jmeno;
-		$products = $model2->getProducts($id,$paginator->offset,$paginator->itemsPerPage,$this->lang,$session->sort);
-		foreach($products as $key=>$product)
+		$cat = $model1->getCategory($id,$this->lang);
+		$cat->view_type = $session->viewType ? 3 : $cat->view_type;
+		$this->template->mkategorie = $cat;
+		$this->template->parent = $model1->getCategory($cat->vlastnik, $this->lang);
+		$this->template->parent ->path = $model1->getPathFromId($cat->vlastnik, $this->lang);
+		$this->template->categories = $model1->getCategories($cat->id, $this->lang);
+
+		$stop = false;
+		foreach($model1->getCategories($cat->vlastnik, $this->lang) as $category)
 		{
-			if($product->pocetVar == 1){
-				$products[$key]->form = $this->createComponentForm('form'.$key);
-				$products[$key]->form['id']->setValue($product->varianta);
+			if($category->id != $cat->id)$this->template->prev = $category->path;
+			else
+			{
+				$stop = true;
+				continue;
 			}
-			$products[$key]->path = $model2->getProductCPath($product->id,$this->lang);
+			if($stop)
+			{
+				$this->template->next = $category->path;
+				break;
+			}
+		}
+
+		$this->template->title = $this->template->mkategorie->jmeno;
+
+		$products = array();
+		if(empty($this->template->categories))
+		{
+			$products = $model2->getProducts($id,$paginator->offset,$paginator->itemsPerPage,$this->lang,$session->sort);
+			foreach($products as $key=>$product)
+			{
+				if($product->pocetVar == 1){
+					$products[$key]->form = $this->createComponentForm('form'.$key);
+					$products[$key]->form['id']->setValue($product->varianta);
+				}
+				$products[$key]->path = $model2->getProductCPath($product->id,$this->lang);
+			}
 		}
 		$this->template->products = $products;
 	}
