@@ -106,7 +106,7 @@ class KategorieModel extends BaseModel{
 
 	public function getCategory($id,$lang,$hort=true)
 	{
-		$result = dibi::fetch("SELECT id,icon AS image,jmeno_$lang AS jmeno,text_$lang AS text,vlastnik,type FROM categories WHERE id=%i",$id);
+		$result = dibi::fetch("SELECT id,icon AS image,jmeno_$lang AS jmeno,text_$lang AS text,vlastnik,type,view_type FROM categories WHERE id=%i",$id);
 		if($hort && isset($result->text))
 		{
 			$result->text = NStrings::truncate($result->text, '300');
@@ -161,6 +161,12 @@ class KategorieModel extends BaseModel{
 	public function setImage($id, NHttpUploadedFile $file)
 	{
 		if($file->isOk())$this->getInstanceOf('ImageModel')->setImage($file->toImage(), $id, 'kategorie');
+		return $this;
+	}
+
+	public function setViewType($id, $type)
+	{
+		dibi::query("UPDATE categories SET view_type=%s WHERE id=%i", $type, $id);
 		return $this;
 	}
 }

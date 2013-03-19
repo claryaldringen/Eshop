@@ -302,6 +302,7 @@ class KategoriePresenter extends BasePresenter{
 
 		$form = new NAppForm($this,'catTextForm');
 		$form->addUpload('catimg', 'Ikona kategorie:');
+		$form->addSelect('view', 'Zobrazení: ', array('Velké boxy', 'Malé boxy', 'Řádky'));
 		$form->addTextArea('cattext','')->setDefaultValue($model->getText($this->id,$this->lang));
 		$form->onSuccess[] = array($this,'catTextFormSubmited');
 		return $form;
@@ -312,6 +313,7 @@ class KategoriePresenter extends BasePresenter{
 		$model = $this->getInstanceOf('KategorieModel');
 		$model->setImage($this->id,$form['catimg']->getValue());
 		$model->setText($this->id,$form['cattext']->getValue(),$this->lang);
+		$model->setViewType($this->id,$form['cattext']->getValue());
 		$this->redirect('this');
 	}
 
