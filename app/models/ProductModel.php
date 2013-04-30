@@ -369,13 +369,13 @@ class ProductModel extends BaseModel{
 		$id = dibi::getInsertId();
 
 		$image->resize($this->context->params['image']['largewidth'], $this->context->params['image']['largeheight']);
-		$image->save(WWW_DIR.'/images/uploaded/large'.$id.'.jpg');
+		$image->save($this->context->params['wwwDir'] . '/images/uploaded/large'.$id.'.jpg');
 
 		$image->resize($this->context->params['image']['mediumwidth'],$this->context->params['image']['mediumheight']);
-		$image->save(WWW_DIR.'/images/uploaded/medium'.$id.'.jpg');
+		$image->save($this->context->params['wwwDir'] . '/images/uploaded/medium'.$id.'.jpg');
 
 		$image->resize($this->context->params['image']['miniwidth'],$this->context->params['image']['miniheight']);
-		$image->save(WWW_DIR.'/images/uploaded/mini'.$id.'.jpg');
+		$image->save($this->context->params['wwwDir'] . '/images/uploaded/mini'.$id.'.jpg');
 
 		return $id;
 	}
@@ -418,9 +418,9 @@ class ProductModel extends BaseModel{
 	public function deleteImage($id)
 	{
 		dibi::query("DELETE FROM images WHERE id=%i",$id);
-		unlink(WWW_DIR.'/images/uploaded/mini'.$id.'.jpg');
-		unlink(WWW_DIR.'/images/uploaded/medium'.$id.'.jpg');
-		unlink(WWW_DIR.'/images/uploaded/large'.$id.'.jpg');
+		unlink($this->context->params['wwwDir'] . '/images/uploaded/mini'.$id.'.jpg');
+		unlink($this->context->params['wwwDir'] . '/images/uploaded/medium'.$id.'.jpg');
+		unlink($this->context->params['wwwDir'] . '/images/uploaded/large'.$id.'.jpg');
 	}
 
 	public function renameImage($id,$name,$lang)

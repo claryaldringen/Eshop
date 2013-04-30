@@ -13,19 +13,19 @@ class MultiFile extends NControl{
 
 	public function __construct(NPresenter $presenter,$name,$label,$allowedExtensions = array(),$minSize=1,$maxSize=10485760)
 	{
-		parent::__construct();
+		parent::__construct($presenter, $name);
 		$this->name = $name;
 		$this->label = $label;
 		$this->allowedExtensions = $allowedExtensions;
 		$this->minSize = $minSize;
 		$this->maxSize = $maxSize;
-		if(!file_exists(TEMP_DIR.'/c-Nette.Uploaded/'))mkdir(TEMP_DIR.'/c-Nette.Uploaded/');
+		if(!file_exists($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/'))mkdir($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/');
 		else{
-			$slozka = dir(TEMP_DIR.'/c-Nette.Uploaded/');
+			$slozka = dir($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/');
 			while($soubor = $slozka->read())
 			{
-  			if ($soubor=="." || $soubor==".." || is_dir(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor)) continue;
-  			if(filemtime(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor) < (time()-3600*24))unlink(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor);
+				if ($soubor=="." || $soubor==".." || is_dir($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/'.$soubor)) continue;
+				if(filemtime($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/'.$soubor) < (time()-3600*24))unlink($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/'.$soubor);
 			}
 			$slozka->close();
 		}
