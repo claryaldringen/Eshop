@@ -923,8 +923,8 @@ class ProductModel extends BaseModel{
 						$value = '#image#';
 					}elseif($value->getContentType() == 'application/zip'){
 						$filename = md5(microtime());
-						$value->move(TEMP_DIR.'/c-Nette.Uploaded/'.$filename.'.zip');
-						$this->unpackZip(TEMP_DIR.'/c-Nette.Uploaded/', $filename,$id );
+						$value->move($this->context->params['tempDir'] . '/c-Nette.Uploaded/'.$filename.'.zip');
+						$this->unpackZip($this->context->params['tempDir'] . '/c-Nette.Uploaded/', $filename,$id );
 						$value = '#image#';
 					}else throw new UnexpectedValueException('Soubor není obrázek ani *.zip.');
 				}else $value = '#image#';

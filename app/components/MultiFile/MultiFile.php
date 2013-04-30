@@ -1,16 +1,16 @@
 <?php
 
 class MultiFile extends NControl{
-	
+
 	protected $name;
 	protected $label;
 	protected $allowedExtensions;
 	protected $maxSize;
 	protected $minSize;
-	
+
 	public $onOneSubmit;
 	public $onAllSubmit;
-	
+
 	public function __construct(NPresenter $presenter,$name,$label,$allowedExtensions = array(),$minSize=1,$maxSize=10485760)
 	{
 		parent::__construct();
@@ -20,14 +20,14 @@ class MultiFile extends NControl{
 		$this->minSize = $minSize;
 		$this->maxSize = $maxSize;
 		if(!file_exists(TEMP_DIR.'/c-Nette.Uploaded/'))mkdir(TEMP_DIR.'/c-Nette.Uploaded/');
-		else{			
+		else{
 			$slozka = dir(TEMP_DIR.'/c-Nette.Uploaded/');
-			while($soubor = $slozka->read()) 
+			while($soubor = $slozka->read())
 			{
   			if ($soubor=="." || $soubor==".." || is_dir(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor)) continue;
   			if(filemtime(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor) < (time()-3600*24))unlink(TEMP_DIR.'/c-Nette.Uploaded/'.$soubor);
 			}
-			$slozka->close();		
+			$slozka->close();
 		}
 		if(!$presenter->isAjax())
 		{
@@ -36,7 +36,7 @@ class MultiFile extends NControl{
 			$session->files = array();
 		}
 	}
-	
+
 	public function render()
 	{
 		$template = $this->createTemplate();
@@ -50,27 +50,27 @@ class MultiFile extends NControl{
 		$template->maxSize = $this->maxSize;
 		$template->render();
 	}
-	
+
 	public function handleGetFile()
 	{
 		$session = NEnvironment::getSession('multiFile');
 		$session->count++;
 		$uploader = new qqFileUploader($this->allowedExtensions, $this->maxSize);
-		if(!file_exists(TEMP_DIR.'/c-Nette.Uploaded/'))mkdir(TEMP_DIR.'/c-Nette.Uploaded/');
-		$result = $uploader->handleUpload(TEMP_DIR.'/c-Nette.Uploaded/');		
-		$model = new MultiFileModel();
+		if(!file_exists($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/'))mkdir($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/');
+		$result = $uploader->handleUpload($this->presenter->context->params['tempDir'] . '/c-Nette.Uploaded/');
+		$model = new MultiFileModel($this->presenter->context->params['tempDir']);
 		$session->files[] = new NHttpUploadedFile($model->getFileInfo($_GET['qqfile']));
 		$this->onOneSubmit(new NHttpUploadedFile($model->getFileInfo($_GET['qqfile'])));
 		if($session->count >= $_GET['total'])
 		{
 			$files = $session->files;
-			$session->files = array();	
+			$session->files = array();
 			$session->count = 0;
 			$this->onAllSubmit($files);
-			
+
 		}else{
 			echo htmlspecialchars(json_encode($result), ENT_NOQUOTES);
-			die;	
+			die;
 		}
 	}
 }
