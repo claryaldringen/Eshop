@@ -160,7 +160,7 @@ class KategorieModel extends BaseModel{
 
 	public function setImage($id, NHttpUploadedFile $file)
 	{
-		$this->getInstanceOf('ImageModel')->setImage($file->toImage(), $id, 'kategorie');
+		if($file->isOk())$this->getInstanceOf('ImageModel')->setImage($file->toImage(), $id, 'kategorie');
 		return $this;
 	}
 }
