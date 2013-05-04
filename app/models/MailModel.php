@@ -4,9 +4,9 @@ class MailModel extends BaseModel{
 
 	public function setMail($co,$stav)
 	{
-		$cnb = new Cnb();
+		$cnb = new Cnb($this->context->params['tempDir']);
 		$model = $this->getInstanceOf('ProductModel');
-		$config = $this->context->params['mail'];
+		$config = (object)$this->context->params['mail'];
 		$result = dibi::fetch("SELECT * FROM objednavka WHERE id=%i",$co);
 		$user = dibi::fetch("SELECT U.* FROM  users U JOIN basket B ON U.id=B.id_user WHERE B.id_obj=%i",$result->id);
 		$platba = dibi::fetch("SELECT D.email_".$result->lang." AS email,D.emailsub_".$result->lang." AS emailsub,cena FROM dodaniplatba D JOIN platby P ON P.id=D.platba WHERE dodani=%i AND platba=%i",$result->dodani, $result->platba);
@@ -14,7 +14,7 @@ class MailModel extends BaseModel{
 		if($stav == 'prijato')$html = $platba;
 		elseif($stav != 'vyrizeno')$html = $dodani;
 		$co = array('{cislo}','{datum}','{polozky}','{cena}','{expedice}','{jmeno}','{ulice}','{mesto}','{psc}','{email}','{platba}','{postovne}','{platbaapostovne}');
-		$template = new NFileTemplate(APP_DIR.'/templates/items.phtml');
+		$template = new NFileTemplate($this->context->params['appDir'] . '/templates/items.phtml');
 		$template->registerFilter(new NLatteFilter());
 		$template->registerHelper('currency',array($cnb,'format'));
 		$template->mena = $user->mena;
@@ -48,7 +48,7 @@ class MailModel extends BaseModel{
 
 	public function sendMessage($data)
 	{
-		$config = $this->context->params['mail'];
+		$config = (object)$this->context->params['mail'];
 
 		$mail = new NMail();
 		$mail->setSubject('Vzkaz z kontaktního formuláře');
@@ -60,7 +60,7 @@ class MailModel extends BaseModel{
 
 	public function setEmails(NPresenter $presenter,$subject,$message)
 	{
-		$config = $this->context->params['mail'];
+		$config = (object)$this->context->params['mail'];
 
 		$template = new NFileTemplate(APP_DIR.'/templates/Mail/spam.phtml');
 		$template->registerFilter(new NLatteFilter());
@@ -105,7 +105,7 @@ class MailModel extends BaseModel{
 	public function sendZaplaceno($order,$cena,$castka)
 	{
 		$res = dibi::fetch("SELECT CONCAT(jmeno,' ',prijmeni) AS name, email FROM users WHERE id IN (SELECT id_user FROM basket WHERE id_obj=%i)",$order);
-		$config = $this->context->params['mail'];
+		$config = (object)$this->context->params['mail'];
 
 		$mail = new NMail();
 		$mail->setSubject('Objednávka č. '.$order.' byla zaplacena');
@@ -117,7 +117,7 @@ class MailModel extends BaseModel{
 
 	public function outOfStock($data)
 	{
-		$config = $this->context->params['mail'];
+		$config = (object)$this->context->params['mail'];
 
 		$template = new NFileTemplate(APP_DIR.'/templates/Mail/outofsotck.phtml');
 		$template->registerFilter(new NLatteFilter());

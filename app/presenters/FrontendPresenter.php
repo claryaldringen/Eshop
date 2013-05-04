@@ -183,7 +183,8 @@ class FrontendPresenter extends BasePresenter
 	public function createComponentDetailNForm()
 	{
 		$form = new NAppForm($this,'detailNForm');
-		$form->onSuccess[] = array($this,'detailNFormSubmited');
+		$form->addSubmit('foo', 'Fooo');
+		$form->onSuccess[] = array($this,'detailFormSubmited');
 		return $form;
 	}
 
@@ -734,7 +735,7 @@ class FrontendPresenter extends BasePresenter
 	}
 
 
-	public function detailNFormSubmited(NAppForm $form)
+	public function detailFormSubmited(NAppForm $form)
 	{
 		$model1 = $this->getInstanceOf('UserModel');
 		$model = $this->getInstanceOf('ProductModel');
