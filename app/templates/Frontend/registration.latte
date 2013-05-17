@@ -1,5 +1,11 @@
 {block #content}
 <h1>Registrace nového zákazníka </h1>
+{if $user->isInRole(Authenticator::GUEST)}
+<p>
+Pokud u nás již máte vedený účet, můžete se přihlásit v pravém horním rohu a pokračovat v objednávce.
+Pokud u nás účet ještě nemáte, zde jej můžete vytvořit a následně rovněž pokračovat v objednávce.
+</p>
+{/if}
 <div class="tab_form">
 <span style="margin-left:12px;">*Položky označené hvězdčkou jsou povinné</span>
 {control registrationNForm}

@@ -75,7 +75,10 @@ abstract class BasePresenter extends NPresenter{
 		$user = $this->getUser();
 		$user->setAuthenticator($this->getInstanceOf('Authenticator'));
 		try{
-			if($user->isInRole('3'))$oldid = $user->getIdentity()->data['id'];
+			if($user->isInRole(Authenticator::GUEST))
+			{
+				$oldid = $user->getIdentity()->data['id'];
+			}
 			$user->login($form['nick']->getValue(),$form['password']->getValue());
 		}catch(NAuthenticationException $e){
 			$this->flashMessage($e->getMessage(),'err');

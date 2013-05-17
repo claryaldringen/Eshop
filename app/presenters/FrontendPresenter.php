@@ -80,9 +80,10 @@ class FrontendPresenter extends BasePresenter
 		if($this->user->isInRole(Authenticator::REGISTERED))
 		{
 			$form->setDefaults($model->getUser($this->userdata['id']));
-			$form->addSubmit('register', 'Uložit');
+			$form->addSubmit('register', 'Uložit')->class('btn btn-primary');;
 		}else{
-			$form->addSubmit('register', 'Registrovat se');
+			if($this->user->isInRole(Authenticator::GUEST))$form->addSubmit('register', 'Registrovat se a pokračovat v objednávce')->getControlPrototype()->class('btn btn-primary');
+			else $form->addSubmit('register', 'Registrovat se')->getControlPrototype()->class('btn btn-primary');
 			$form['login']->addRule(~NForm::IS_IN,'Toto uživatelské jméno je již zabrané!',$model->getLogins());
 			$form['heslo']->addRule(NForm::FILLED, 'Vyplňte heslo!');
 		}
