@@ -1,5 +1,6 @@
 {block #content}
-<h1>Registrace nového zákazníka </h1>
+<div style="float: left; width: 61%; padding: 2%;">
+<h2 class="categoryh2">Registrace</h2>
 {if $user->isInRole(Authenticator::GUEST)}
 <p>
 Pokud u nás již máte vedený účet, můžete se přihlásit v pravém horním rohu a pokračovat v objednávce.
@@ -7,6 +8,47 @@ Pokud u nás účet ještě nemáte, zde jej můžete vytvořit a následně rov
 </p>
 {/if}
 <div class="tab_form">
-<span style="margin-left:12px;">*Položky označené hvězdčkou jsou povinné</span>
-{control registrationNForm}
+<span style="margin-left:12px;"></span>
+{form registrationNForm}
+	<ul class="red" n:if="$form->hasErrors()">
+		<li n:foreach="$form->errors as $error">{$error}</li>
+	</ul>
+	<table class="registration1">
+		<tr><td  class="rtdf">{label jmeno /}</td><td><span class="red">*</span>{input jmeno}</td></tr>
+		<tr><td>{label email /}</td><td><span class="red">*</span>{input email}</td></tr>
+		<tr><td>{label telefon /}</td><td><span class="red">*</span>{input telefon}</td></tr>
+		<tr><td>{label ulice /}</td><td><span class="red">*</span>{input ulice}</td></tr>
+		<tr><td>{label mesto /}</td><td><span class="red">*</span>{input mesto}</td></tr>
+		<tr><td>{label psc /}</td><td><span class="red">*</span>{input psc}</td></tr>
+		<tr><td>{label login /}</td><td><span class="red">*</span>{input login}</td></tr>
+		<tr><td>{label heslo /}</td><td><span class="red">*</span>{input heslo}</td></tr>
+		<tr><td>{label heslo2 /}</td><td><span class="red">*</span>{input heslo2}</td></tr>
+		<tr><td>{label stat /}</td><td>&nbsp;&nbsp;{input stat}</td></tr>
+	</table>
+		<div style="display: none">{input mena}</div>
+	<table>
+		<tr><td><input type="checkbox" id="company_data"></td><td><label for="company_data"><b>Firemní údaje</b><br>
+		<span style="color: #999;">Firemní údaje vyplňte pouze, pokud zboží nakupujete na firmu</span></label></td></tr>
+	</table>
+	<table id="company_data_table">
+		<tr><td class="rtdf">{label firma /}</td><td>&nbsp;&nbsp;{input firma}</td></tr>
+		<tr><td>{label ico /}</td><td>&nbsp;&nbsp;{input ico}</td></tr>
+		<tr><td>{label dic /}</td><td>&nbsp;&nbsp;{input dic}</td></tr>
+	</table>
+	<table>
+		<tr><td>{input news}</td><td><b>{label news /}</b></td></tr>
+	</table>
+	<div><br><br><div>
+	<table class="registration2">
+		<tr><td class="rtdf2"><span class="red">*</span> Položky označené hvězdčkou jsou povinné</td><td>{input register}</td></tr>
+	</table>
+{/form registrationNForm}
+</div>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('#company_data').click(function(){
+			$('#company_data_table').toggle();
+		});
+	});
+</script>
 </div>

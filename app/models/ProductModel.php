@@ -276,7 +276,15 @@ class ProductModel extends BaseModel{
 
 	public function getBasketDetail($user,$lang,$obj=0)
 	{
-		$result = dibi::query("SELECT B.id,P.jmeno_$lang AS produkt,V.id AS id_var,V.type,V.jmeno_$lang AS varianta,B.count AS pocet,P.dph,CEIL(V.cena*B.count*(1+P.dph/100)*(1-V.sleva/100)) AS cena FROM basket B JOIN variants V ON V.id=B.id_var JOIN products P ON P.id=V.vlastnik WHERE B.id_user=%i AND B.id_obj=%i",$user,$obj);
+		$sql = "SELECT B.id,P.jmeno_$lang AS produkt,V.id AS id_var,V.type,V.jmeno_$lang AS varianta,B.count AS pocet,P.dph,CEIL(V.cena*B.count*(1+P.dph/100)*(1-V.sleva/100)) AS cena, i.id AS image
+			FROM basket B
+			JOIN variants V ON V.id=B.id_var
+			JOIN products P ON P.id=V.vlastnik
+			JOIN images i ON i.vlastnik=P.id
+			WHERE B.id_user=%i AND B.id_obj=%i
+			GROUP BY B.id";
+
+		$result = dibi::query($sql,$user,$obj);
 		return $result->fetchAll();
 	}
 

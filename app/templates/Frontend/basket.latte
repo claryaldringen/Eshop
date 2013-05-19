@@ -1,34 +1,41 @@
 {block #content}
-<h2>Váš košík</h2>
-<p>
-Zde můžete zkontrolovat zboží ve vašem košíku. Pokud vše souhlasí, pokračujte tlačítkem <i>K objednávce</i>.
-Pokud počty zboží neodpovídají, můžete je opravit přímo v tabulce a kliknutím na tlačítko <i>Uložit</i> 
-změny uložíte.
-</p>
-
+<div style="float: left; width: 61%; padding: 2%;">
+<span class="breadcumb breadcumb-active">Košík</span>
+<img src="/images/rightarrow.png" class="bradcumb-arrow">
+<span class="breadcumb">Doprava a platba</span>
+<img src="/images/rightarrow.png" class="bradcumb-arrow">
+<span class="breadcumb">Zákaznické údaje</span>
+<img src="/images/rightarrow.png" class="bradcumb-arrow">
+<span class="breadcumb">Souhrn objednávky</span>
+<h2 class="basketh2">Položky ve vašem košíku</h2>
+<div class="baskettable">
 {widget inBasketNForm, begin}
 {widget inBasketNForm, errors}
 <table class="basket">
 	<tr class="head">
-		<th style="width:50px;">Počet</th>
-		<th >Produkt</th>
-		<th>Varianta</th>
-		<th style="width:100px;text-align:right;">Cena</th>
+		<th><div class="thtitle">&nbsp</div><div class="ridge"></div></th>
+		<th><div class="thtitle">Název zboží</div><div class="ridge"></div></th>
+		<th><div class="thtitle">Počet kusů</div><div class="ridge"></div></th>
+		<th><div class="thtitle">Cena</div><div class="ridge"></div></th>
 	</tr>
-{if empty($basketDetail)}	
+{if empty($basketDetail)}
 	<tr><td colspan="4">Košík je prázdný</td></tr>
 {/if}
 {foreach $basketDetail as $produkt}
 	<tr>
-		<td>
-			{$control['inBasketNForm']['pocet_'.$produkt->id]->control}
-			{$control['inBasketNForm']['pocet_'.$produkt->id]->label}
-		</td>
+		<td><img height="60" style="max-width:164px; _width: expression(document.body.clientWidth > 164? '164px' : 'auto' );" src="{$baseUri}/images/uploaded/mini{$produkt->image}.jpg"></td>
 		<td>
 			{$produkt->produkt}
+			<br><br>
+			<div>
+			<a class="deleteitem" href="{plink deleteItem! 'id' => $produkt->id}">
+				Odebrat položku
+				<img src="/images/cross.jpg">
+			</a>
+			</div>
 		</td>
-		<td>
-			{if $produkt->varianta != '-'}{$produkt->varianta}{/if}
+		<td class="productcount">
+			{$control['inBasketNForm']['pocet_'.$produkt->id]->control}
 		</td>
 		<td style="width:100px;text-align:right;">
 			{$produkt->cena|currency:czk:$mena}
@@ -36,17 +43,24 @@ změny uložíte.
 	</tr>
 {/foreach}
 	<tr>
-	<td colspan="3" style="text-align:left;height:30px;">Cena celkem:</td>
-	<td class="cenacelkem">{$basket['cena']|currency:czk:$mena}</td>
+	<td colspan="4">
+		Zde můžete zkontrolovat zboží ve vašem košíku. Pokud vše souhlasí, pokračujte tlačítkem <span class="foo">Pokračovat</span>.
+		Pokud počty zboží neodpovídají, můžete je opravit přímo v tabulce a jestliže chcete dále ještě něco nakoupit,
+		stiskněte tlačítko <span class="foo">Zpět k výběru</span>.
+		<div class="totalprice">Celková cena zboží: {$basket['cena']|currency:czk:$mena}</div>
+	</td>
 	</tr>
 </table>
+</div>
 {if $basket['pocet']}
 <table style="width:100%;text-align:center;">
 	<tr>
-		<td>{$control['inBasketNForm']['save']->control}</td>
-		<td>{$control['inBasketNForm']['delete']->control}</td>
-		<td>{$control['inBasketNForm']['toorder']->control}</td>
+		<td>
+			<button id="backtoselect">< Zpět k výběru</button>
+			{$control['inBasketNForm']['toorder']->control}
+		</td>
 	</tr>
 </table>
 {/if}
 {widget inBasketNForm, end}
+</div>
