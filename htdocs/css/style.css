@@ -6,7 +6,7 @@ body{
 }
 
 
-.kategorie, .kosik, .login, #frmloginNForm-login, .contact, .askhelp{
+.kategorie .kosik, .login, #frmloginNForm-login, .contact, .askhelp, .baskettable, #frminBasketNForm-toorder, #backtoselect, #frmregistrationNForm-register, #frmforgottenPasswordForm-ok, #frmkontaktForm-send, #frmdodaniNForm-order{
 	border: solid 1px #c0c0c0;
 	border-radius: 5px;
 	overflow: hidden;
@@ -150,12 +150,7 @@ input.hledat{
 	color: #000;
 }
 
-.windowtitle{
-	text-align: left;
-	padding: 2%;
-	padding-left: 15%;
-	font-size: 115%;
-
+.windowtitle, .thtitle{
 	/* Safari 4-5, Chrome 1-9 */
 	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#c0c0c0), to(#FFF));
 
@@ -170,6 +165,13 @@ input.hledat{
 
 	/* Opera 11.10+ */
 	background: -o-linear-gradient(top, #FFF, #c0c0c0);
+}
+
+.windowtitle{
+	text-align: left;
+	padding: 2%;
+	padding-left: 15%;
+	font-size: 115%;
 }
 
 .login{
@@ -190,7 +192,7 @@ input.hledat{
 	margin-top: 1%;
 }
 
-#frmloginNForm-login{
+#frmloginNForm-login, #frminBasketNForm-toorder, #backtoselect, #frmregistrationNForm-register, #frmforgottenPasswordForm-ok, #frmkontaktForm-send, #frmdodaniNForm-order{
 	padding: 2%;
 
 	/* Safari 5.1+, Chrome 10+ */
@@ -436,7 +438,7 @@ img.left{
 	font-size: 220%;
 }
 
-.windowtitle h2{
+.windowtitle h2, .basket th{
 	margin: 2%;
 	margin-top: 1%;
 	font-weight: normal;
@@ -467,8 +469,8 @@ img.left{
 }
 
 .products{
-	border-collapse: collapse;
 	margin: 2%;
+	width: 96%;
 }
 
 .products td{
@@ -600,7 +602,7 @@ tr.last td{
 	border-left: solid 1px #c1c1c1;
 }
 
-.sort a:hover{
+.sort a:hover, .lefttop a:hover{
 	/* Safari 5.1, Chrome 10+ */
 	background: -webkit-linear-gradient(bottom, #414140, #cacaca);
 
@@ -618,4 +620,227 @@ tr.last td{
 	width: 25%;
 	float: none;
 	margin: 1%;
+}
+
+.lefttop{
+	float: left;
+}
+
+.lefttop img{
+	width: 25%;
+	float: none;
+	margin: 1%;
+}
+
+.lefttop a{
+	display: block;
+	width: 100%;
+	border-right: solid 1px #c1c1c1;
+}
+
+.tablename{
+	color: #000;
+	font-weight: normal;
+}
+
+td.tableview{
+	text-align: center;
+	border: solid 1px #c1c1c1;
+}
+
+.collapse{
+	border-collapse: collapse;
+}
+
+.breadcumb{
+	font-size: 134%;
+}
+
+.breadcumb-active{
+	color: #F00;
+}
+
+.bradcumb-arrow{
+	width: 1.5%;
+	padding-left: 1%;
+	padding-right: 1%;
+}
+
+.basketh2{
+	font-size: 134%;
+	font-weight: normal;
+}
+
+table.basket{
+	width: 100%;
+	border-collapse: collapse;
+}
+
+table.basket th{
+	border-left: 1px solid #C0C0C0;
+	padding: 0px;
+}
+
+table.basket td{
+	border-bottom: 1px solid #C0C0C0;
+	padding: 1%;
+}
+
+.thtitle{
+	font-size: 110%;
+	padding: 3px;
+}
+
+.totalprice{
+	font-size: 134%;
+	padding: 2%;
+	text-align: right;
+}
+
+.baskettable{
+
+}
+
+.productcount{
+	text-align: center;
+}
+
+.productcount input{
+	border: 1px solid #C0C0C0;
+}
+
+.deleteitem{
+	color: #F00;
+	text-decoration: none;
+	float: right;
+}
+
+
+.deleteitem img{
+	width: 7%;
+}
+
+.foo{
+	font-style: italic;
+	color: #44b61c;
+}
+
+#frminBasketNForm-toorder, #backtoselect, #frmdodaniNForm-order{
+	padding-top: 1%;
+	padding-bottom: 1%;
+}
+
+#backtoselect{
+	/* Safari 5.1+, Chrome 10+ */
+	background: -webkit-linear-gradient(bottom, #7b7b7b, #d1d1d1) no-repeat border-box, -webkit-linear-gradient(bottom, #727272, #545454);
+
+	/* Firefox 3.6+ */
+	background: -moz-linear-gradient(bottom, #7b7b7b, #d1d1d1) no-repeat border-box, -moz-linear-gradient(bottom, #727272, #545454);
+
+	/* IE 10 */
+	background: -ms-linear-gradient(bottom, #7b7b7b, #d1d1d1) no-repeat border-box, -ms-linear-gradient(bottom, #727272, #545454);
+
+	/* Opera 11.10+ */
+	background: -o-linear-gradient(bottom, #7b7b7b, #d1d1d1)  no-repeat border-box, -o-linear-gradient(bottom, #727272, #545454);
+
+	background-size: 100% 50%, 100% 50%;
+	background-position: 0% 0%, 05, 50%;
+	background-origin: padding-box, padding-box;
+	border: solid 1px #a0a0a0;
+	float: left;
+}
+
+.registration1, #company_data_table, .registration2{
+	width: 100%;
+	color: #999;
+}
+
+.registration1 input,select, #company_data_table input, select, #frmforgottenPasswordForm-nickoremail, #frmkontaktForm-email, #frmkontaktForm-message{
+	border: solid 1px #c1c1c1;
+	padding-left: 2%;
+	padding-top: 1%;
+	width: 60%;
+}
+
+.registration1 select, #company_data_table select{
+	width: 62%;
+}
+
+.rtdf{
+	width: 35%;
+}
+
+.rtdf2{
+	width: 65%;
+}
+
+.red{
+	color: red;
+}
+
+#company_data_table{
+	display: none;
+}
+
+#frmregistrationNForm-register, #frmforgottenPasswordForm-ok{
+	float: left;
+}
+
+#frm-forgottenPasswordForm table{
+	width: 100%;
+}
+
+#frm-forgottenPasswordForm td{
+	width: 50%;
+}
+
+#frm-forgottenPasswordForm label{
+	color: #999;
+	font-weight: normal;
+}
+
+#kontakt h2{
+	font-weight: normal;
+	color: #000;
+}
+
+#kontakt{
+	border-radius: 5px;
+	box-shadow: -5px 5px 5px #c4c4c4, 1px -1px 6px #c4c4c4;
+	border: solid 1px #c4c4c4;
+	padding: 2%;
+	margin-top: 1%;
+	margin-bottom: 3%;
+	color: #999;
+}
+
+.kontakt label{
+	color: #999;
+}
+
+#frmkontaktForm-send{
+	float: none;
+	padding-top: 1%;
+	padding-bottom: 1%;
+}
+
+#fadresa1, #dadresa1{
+	display: none;
+}
+
+#frmdodaniNForm-dadresa, #frmdodaniNForm-fadresa, #frmdodaniNForm-pozn{
+	width: 100%;
+}
+
+#frmdodaniNForm-newdadresa, #frmdodaniNForm-newfadresa{
+	width: 99%;
+	height: 50px;
+}
+
+table.dodanitab {
+	width: 100%;
+}
+
+table.dodanitab td{
+	border: none;
 }

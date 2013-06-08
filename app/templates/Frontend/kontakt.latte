@@ -1,25 +1,30 @@
 {block #content}
+<div style="float: left; width: 61%; padding: 2%;">
+
 <div>
 	{!$pagetext}
 </div>
-<p id="kontakt">
-Pokud se potřebujete rychle na něco zeptat, či nám poslat nějaký vzkaz, můžete využít následující formulář.
-Nezapomeňte prosím vyplnit svůj e-mail abychom vám mohli poslat odpověď.
-</p>
+<div id="kontakt">
+	<h2>Máte problém?</h2>
+	Pokud se potřebujete rychle na něco zeptat, či nám poslat nějaký vzkaz, můžete využít následující formulář.
+	Nezapomeňte prosím vyplnit svůj e-mail abychom vám mohli poslat odpověď.<br><br>
+</div>
 <div class="kontakt">
 {control kontaktForm, begin}
 {control kontaktForm, errors}
-{$control['kontaktForm']['email']->label}<br>
-{$control['kontaktForm']['email']->control}<br>
+&nbsp;&nbsp;&nbsp;{$control['kontaktForm']['email']->label}<br>
+<span class="red">*</span>{$control['kontaktForm']['email']->control}<br>
 <br>
-{$control['kontaktForm']['message']->label}<br>
-{$control['kontaktForm']['message']->control}<br>
+&nbsp;&nbsp;&nbsp;{$control['kontaktForm']['message']->label}<br>
+<span class="red" style="float: left;">*</span>{$control['kontaktForm']['message']->control}<br>
 <br>
 {if isset($showSubmit)}
 <div style="text-align:center;">
-	{$control['kontaktForm']['send']->control}<br>
+	<span style="float: left;color: #999;"><span class="red">*</span> Položky označené hvězdčkou jsou povinné</span>{$control['kontaktForm']['send']->control}<br>
 </div>
 {/if}
 <br>
 {control kontaktForm, end}
+</div>
+
 </div>
