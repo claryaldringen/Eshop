@@ -1,10 +1,13 @@
 {block #content}
+&nbsp;&nbsp;
 <div style="float: left; width: 61%; padding: 2%;">
 <span class="breadcumb">Košík</span>
 <img src="/images/rightarrow.png" class="bradcumb-arrow">
 <span class="breadcumb">Zákaznické údaje</span>
 <img src="/images/rightarrow.png" class="bradcumb-arrow">
 <span class="breadcumb  breadcumb-active">Doprava a platba</span>
+<br><br><br>
+<h3 class="breadcumb">&nbsp;&nbsp;Zvolte si způsob dopravy a platby</h3>
 {snippet dodani}
 {widget dodaniNForm,begin}
 <div class="baskettable">
@@ -14,13 +17,13 @@
 			<th><div class="thtitle">Dodání a platba</div><div class="ridge"></div></th>
 		</tr>
 		<tr>
-			<td style="width: 50%;border-right: solid 1px #C0C0C0;">
+			<td style="width: 50%;border-right: solid 1px #C0C0C0;padding: 3%;">
 				<b>Dodací adresa:</b>
 				<div id="dadresa1">
 				{$control['dodaniNForm']['dadresa']->control}<br>
 				{$control['dodaniNForm']['newdadresa']->control}
 				</div>
-				<div id="dadresa2">
+				<div id="dadresa2" style="margin-top: 2%;">
 				{$userdata['realname']}<br>
 				{$userdata['ulice']}<br>
 				{$userdata['psc']} - {$userdata['mesto']}
@@ -29,13 +32,13 @@
 				<br>
 				<a href="" onClick="$('#dadresa2').hide();$('#dadresa1').show();return false;">Zvolit jinou adresu</a>
 				</div>
-				<div style="height:15px;width:100%"></div>
+				<div style="height: 30px;width:100%"></div>
 				<b>Fakturační adresa:</b>
 				<div id="fadresa1">
 				{$control['dodaniNForm']['fadresa']->control}<br>
 				{$control['dodaniNForm']['newfadresa']->control}
 				</div>
-				<div id="fadresa2">
+				<div id="fadresa2" style="margin-top: 2%;">
 				{$userdata['realname']}<br>
 				{$userdata['ulice']}<br>
 				{$userdata['psc']} - {$userdata['mesto']}
@@ -50,7 +53,7 @@
 					<td>
 						{$control['dodaniNForm']['dodani']->label}
 					</td>
-					<td>
+					<td style="width: 50%;">
 						<span class="red">*</span>
 						{$control['dodaniNForm']['dodani']->control}
 					</td>
@@ -72,12 +75,12 @@
 					{$control['dodaniNForm']['pozn']->control}
 					</td>
 				</tr>
-				</table>			
+				</table>
 			</td>
 		</tr>
 	</table>
 </div>
-&nbsp;
+&nbsp;<br><br>
 <div class="baskettable">
 	<table class="basket">
 						<tr>
@@ -119,8 +122,7 @@
 				</table>
 			</td>
 </div>
-</div>
-{widget dodaniNForm,errors}
+<br><br>
 <table style="width: 100%;">
 	<tr>
 		<td style="width: 50%;text-align:left;"><button id="backtoselect">< Zpět</button></td>
@@ -129,3 +131,4 @@
 </table>
 {widget dodaniNForm,end}
 {/snippet}
+</div>

@@ -1,40 +1,49 @@
 {block #content}
-<h1>Vaše objednávky</h1>
+<div style="float: left; width: 61%; padding: 2%;">
+<h2 class="categoryh2">Vaše objednávky</h2>
 
 {foreach $orders as $order}
-	<h3>
-		<span style="float:right;">
-			{$order->cena|currency:czk:$mena}&nbsp;&nbsp;&nbsp;&nbsp;
-			{if $order->stav == 'prijato'}Expedice {$order->expedice} dní{else}Vyřízeno{/if}
-		</span>
-		{$order->datum|date: "%d.%m.%Y"} objednávka č. {$order->id}
-	</h3>
-	<div>
-		<table class="inorder">
-			<tr style="height: 30px; border-top: 1px solid #898989; border-bottom: 1px solid #898989;">
-				<th>Počet</th>
-				<th>Produkt a varianta</th>
-				<th>Cena za kus</th>
-				<th>Cena celkem</th>
-			</tr>
-			{foreach $order->items as $item}
-				<tr style="border-bottom: 1px solid #38352E; height: 25px;">
-					<td class="item1">{$item->count} {$item->kus}</td>
-					<td class="item2">{$item->product} {$item->varianta}</td>
-					<td class="item3">{$item->cena|currency:czk:$mena}</td>
-					<td class="item4">{$item->cena*$item->count|currency:czk:$mena}</td>
-				</tr>
-			{/foreach}
-		</table>
-		<table class="inorder">
+	<div class="baskettable">
+		<table class="basket">
 			<tr>
-				<td><b>Dodání:</b> {$order->dodani}</td>
-				<td><b>Platba:</b> {$order->platba}</td>
+				<th><div class="thtitle">{$order->datum|date: "%d.%m.%Y"} objednávka č. {$order->id}</div><div class="ridge"></div></th>
+				<th><div class="thtitle">{$order->cena|currency:czk:$mena}</div><div class="ridge"></div></th>
+				<th><div class="thtitle">{if $order->stav == 'prijato'}Expedice {$order->expedice} dní{else}Vyřízeno{/if}</div><div class="ridge"></div></th>
 			</tr>
 			<tr>
-				<td colspan="2"><b>Poznámka:</b> {$order->pozn}</td>
+				<td colspan="3">
+					<div>
+						<table class="inorder">
+							<tr style="height: 30px; border-top: 1px solid #898989; border-bottom: 1px solid #898989;">
+								<th>Počet</th>
+								<th>Produkt a varianta</th>
+								<th>Cena za kus</th>
+								<th>Cena celkem</th>
+							</tr>
+							{foreach $order->items as $item}
+								<tr style="border-bottom: 1px solid #38352E; height: 25px;">
+									<td class="item1">{$item->count} {$item->kus}</td>
+									<td class="item2">{$item->product} {$item->varianta}</td>
+									<td class="item3">{$item->cena|currency:czk:$mena}</td>
+									<td class="item4">{$item->cena*$item->count|currency:czk:$mena}</td>
+								</tr>
+							{/foreach}
+						</table>
+						<table class="inorder">
+							<tr>
+								<td><b>Dodání:</b> {$order->dodani}</td>
+								<td><b>Platba:</b> {$order->platba}</td>
+							</tr>
+							<tr>
+								<td colspan="2"><b>Poznámka:</b> {$order->pozn}</td>
+							</tr>
+						</table>
+						<div>&nbsp;</div>
+					</div>
+				</td>
 			</tr>
 		</table>
-		<div>&nbsp;</div>
 	</div>
+	&nbsp;<br>
 {/foreach}
+</div>

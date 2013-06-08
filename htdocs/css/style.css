@@ -6,7 +6,7 @@ body{
 }
 
 
-.kategorie .kosik, .login, #frmloginNForm-login, .contact, .askhelp, .baskettable, #frminBasketNForm-toorder, #backtoselect, #frmregistrationNForm-register, #frmforgottenPasswordForm-ok, #frmkontaktForm-send, #frmdodaniNForm-order{
+.kategorie, .kosik, .login, #frmloginNForm-login, .contact, .askhelp, .baskettable, #frminBasketNForm-toorder, #backtoselect, #frmregistrationNForm-register, #frmforgottenPasswordForm-ok, #frmkontaktForm-send, #frmdodaniNForm-order{
 	border: solid 1px #c0c0c0;
 	border-radius: 5px;
 	overflow: hidden;
@@ -652,6 +652,10 @@ td.tableview{
 	border-collapse: collapse;
 }
 
+h3.breadcumb{
+	font-weight: normal;
+}
+
 .breadcumb{
 	font-size: 134%;
 }
@@ -843,4 +847,27 @@ table.dodanitab {
 
 table.dodanitab td{
 	border: none;
+}
+
+.orderendh3{
+	color: #6D6D6D;
+	font-size: 160%;
+}
+
+.orderendh1{
+	font-size: 240%;
+}
+
+.inorder{
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.inorder th{
+	border: none !important;
+	font-weight: bold;
+}
+
+#frmdodaniNForm-dodani, #frmdodaniNForm-platba{
+	width: 80%;
 }

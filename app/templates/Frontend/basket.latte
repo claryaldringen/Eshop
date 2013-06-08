@@ -1,5 +1,6 @@
 {block #content}
 <div style="float: left; width: 61%; padding: 2%;">
+&nbsp;&nbsp;
 <span class="breadcumb breadcumb-active">Košík</span>
 <img src="/images/rightarrow.png" class="bradcumb-arrow">
 {if $user->isInRole(Authenticator::GUEST)}
@@ -7,6 +8,8 @@
 <img src="/images/rightarrow.png" class="bradcumb-arrow">
 {/if}
 <span class="breadcumb">Doprava a platba</span>
+<br><br><br>
+<h3 class="breadcumb">&nbsp;&nbsp;Položky ve vašem košíku</h3>
 <div class="baskettable">
 {widget inBasketNForm, begin}
 {widget inBasketNForm, errors}
@@ -42,15 +45,16 @@
 	</tr>
 {/foreach}
 	<tr>
-	<td colspan="4">
+	<td colspan="4" style="padding-left: 4%;padding-top: 3%;">
 		Zde můžete zkontrolovat zboží ve vašem košíku. Pokud vše souhlasí, pokračujte tlačítkem <span class="foo">Pokračovat</span>.
 		Pokud počty zboží neodpovídají, můžete je opravit přímo v tabulce a jestliže chcete dále ještě něco nakoupit,
 		stiskněte tlačítko <span class="foo">Zpět k výběru</span>.
-		<div class="totalprice">Celková cena zboží: {$basket['cena']|currency:czk:$mena}</div>
+		<div class="totalprice" style="margin-top: 10%;">Celková cena zboží: {$basket['cena']|currency:czk:$mena}</div>
 	</td>
 	</tr>
 </table>
 </div>
+<br><br>
 {if $basket['pocet']}
 <table style="width:100%;text-align:center;">
 	<tr>
