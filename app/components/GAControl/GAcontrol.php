@@ -11,7 +11,7 @@ class GAcontrol extends NControl{
 
 	public function render()
 	{
-		$model = new GAModel();
+		$model = new GAModel($this->presenter->context->params['tempDir']);
 
 		$template = $this->createTemplate();
 		if($this->orderId)$template->order = $model->getOrder($this->orderId);
