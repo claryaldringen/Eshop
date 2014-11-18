@@ -1,4 +1,4 @@
-  {if $user->isInRole(Authenticator::REGISTERED)}
+  {if $user->isInRole(Authenticator::REGISTERED) || $user->isInRole(Authenticator::ADMIN)}
   	<a href="{plink Frontend:registration}">
   	{$user->getIdentity()->data['realname']}&nbsp;
   	({$user->getIdentity()->data['login']})

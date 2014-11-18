@@ -6,6 +6,7 @@
 #
 common:
 	parameters:
+		libDir: "%tempDir%/../libs/"
 		local:
 			dev: "cs;CZK;203"
 			cz: "cs;CZK;203"

@@ -647,7 +647,10 @@ class FrontendPresenter extends BasePresenter
 		$this->template->text = $model2->getText($this->lang);
 
 		$settingsModel = $this->getInstanceOf('SettingsModel');
-		$this->template->pagetext = $settingsModel->getPageText(1, $settingsModel->getLangId($this->lang))->content;
+		$page = $settingsModel->getPageText(1, $settingsModel->getLangId($this->lang));
+		$text = '';
+		if($page) $text = $page->content;
+		$this->template->pagetext = $text;
 	}
 
 	public function renderDetail($path, $produkt)

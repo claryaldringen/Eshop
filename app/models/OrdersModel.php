@@ -208,7 +208,7 @@ class OrdersModel extends BaseModel
 		return $result1;
 	}
 
-	public function getInvoice($order,$lang)
+	public function getInvoice($order,$lang, $presenter)
 	{
 		$items = array();
 
@@ -223,7 +223,7 @@ class OrdersModel extends BaseModel
 		$dodaniCena = $res->dodani_cena;
 		$platbaCena = $res->platba_cena;
 
-		$cnb = new Cnb();
+		$cnb = new Cnb($this->context->parameters['tempDir']);
 		$money = $cnb->getMoney($mena);
 
 		$res = dibi::fetch("SELECT id,datum FROM faktura WHERE id_obj=%i",$order);
@@ -257,6 +257,7 @@ class OrdersModel extends BaseModel
 		}
 
 		$invoice = new InvoiceControl($id, 'Faktura - daňový doklad č.');
+		$invoice->setParent($presenter);
 		$invoice->mena = $money['symbol'];
 		$invoice->setVariableSymbol($order);
 		$invoice->setDateOfIssuance($datum);
@@ -272,9 +273,9 @@ class OrdersModel extends BaseModel
 
 		$invoice->addItems($items);
 
-		include_once(LIB_DIR . '/mpdf50/mpdf.php');
+		include_once($this->context->parameters['libDir'] . '/MPDF57/mpdf.php');
 		$mpdf = new mPDF('iso-8859-2');
-		$invoice->exportToPdf($mpdf);
+		@$invoice->exportToPdf($mpdf);
 	}
 
 	public function setPaymentFromBank($data)

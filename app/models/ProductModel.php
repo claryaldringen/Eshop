@@ -125,19 +125,17 @@ class ProductModel extends BaseModel{
 		if($type == 'normal')$sqlPart = "owner IN ($ids)";
 		else
 		{
-			$dibiTranslator = new DibiTranslator();
-			$sqlPart = $dibiTranslator->translate("id IN (SELECT id_prod FROM collections JOIN variants V ON V.vlastnik=P.id WHERE id_coll=%i)", $owner);
+			$sqlPart = "P.id IN (SELECT id_prod FROM collections WHERE id_coll=$owner)";
 		}
 
 		$result = dibi::query("
 			SELECT P.id,link_$lang AS link,P.jmeno_$lang AS jmeno,popis_$lang AS popis,dph,(V.cena*(1+(dph/100))) AS scena
 			FROM products P JOIN variants V ON V.vlastnik=P.id
-			WHERE %sql AND P.status='ok' AND show_$lang=1 GROUP BY id ORDER BY jmeno %ofs %lmt",
+			WHERE %sql AND P.status='ok' AND show_$lang=1 GROUP BY id ORDER BY P.id DESC %ofs %lmt",
 		$sqlPart, $offset, $limit);
 
 		foreach($result as $info)
 		{
-			$object = new stdClass();
 			$object = clone($info);
 			$result2 = dibi::query("SELECT id,cena,sklad,sleva FROM variants WHERE vlastnik=%i AND status='ok' ORDER BY cena",$info->id);
 			$info2 = $result2->fetch();
@@ -176,6 +174,9 @@ class ProductModel extends BaseModel{
 
 	public function getProductCount($owner,$lang,$type = 'normal')
 	{
+		if($owner)$type = dibi::fetch("SELECT type FROM categories WHERE id=%i",$owner)->type;
+		else $type = 'normal';
+
 		if($type == 'normal')
 		{
 			$model = $this->getInstanceOf('KategorieModel');
@@ -356,8 +357,8 @@ class ProductModel extends BaseModel{
 		if($owner)$type = dibi::fetch("SELECT type FROM categories WHERE id=%i",$owner)->type;
 		else $type = 'normal';
 
-		if($type == 'normal')dibi::query("UPDATE products SET status=%s,owner=0 WHERE id IN (%in)",$status,$co);
-		else dibi::query("DELETE FROM collections WHERE id_prod IN (%in) AND id_coll=%i",$co,$owner);
+		if($type == 'normal')dibi::query("UPDATE products SET status=%s,owner=0 WHERE id IN %in",$status,$co);
+		else dibi::query("DELETE FROM collections WHERE id_prod IN %in AND id_coll=%i",$co,$owner);
 	}
 
 	public function setImage($item,$file,$typ='produkt')
@@ -483,7 +484,7 @@ class ProductModel extends BaseModel{
 		$toStatus = dibi::query("SELECT id_var FROM basket WHERE id_var IN (SELECT id FROM variants WHERE %and)", $pole)->fetchPairs(NULL,'id_var');
 		if(!empty($toStatus))
 		{
-			dibi::query("UPDATE variants SET status='del' WHERE id IN (%in)",$toStatus);
+			dibi::query("UPDATE variants SET status='del' WHERE id IN %in",$toStatus);
 		}
 		dibi::query("DELETE FROM variants WHERE %and AND status='ok'",$pole);
 	}
@@ -953,7 +954,7 @@ class ProductModel extends BaseModel{
 
 	public function copyItems($items)
 	{
-		$result = dibi::query("SELECT * FROM products WHERE id IN (%in)",$items)->fetchAll();
+		$result = dibi::query("SELECT * FROM products WHERE id IN %in",$items)->fetchAll();
 		foreach($result as $info)
 		{
 			foreach($this->getLanguages() as $lang)

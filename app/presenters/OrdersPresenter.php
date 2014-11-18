@@ -132,7 +132,7 @@ class OrdersPresenter extends BasePresenter{
 	public function handleFaktura($id)
 	{
 		$model = $this->getInstanceOf('OrdersModel');
-		$model->getInvoice($id,$this->lang);
+		$model->getInvoice($id,$this->lang, $this);
 	}
 
 	public function handleMerge($id,$id2)

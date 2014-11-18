@@ -81,8 +81,10 @@ class KategorieModel extends BaseModel{
 		while($id > 0)
 		{
 			$result = dibi::fetch("SELECT vlastnik,link_$lang AS link FROM categories WHERE status='ok' AND id=%i",$id);
-			$id = $result->vlastnik;
-			$path = $result->link.'/'.$path;
+			if(isset($result->vlastnik)) {
+				$id = $result->vlastnik;
+				$path = $result->link . '/' . $path;
+			} else break;
 		}
 		return $path;
 	}
@@ -130,7 +132,7 @@ class KategorieModel extends BaseModel{
 		$langs = $this->getLanguages();
 		foreach($langs as $lang)
 		{
-			$pole['jmeno_'.$lang->zkratka] = 'NovÄ‚Ë‡ sloÄąÄľka';
+			$pole['jmeno_'.$lang->zkratka] = 'Nová složka';
 			$pole['link_'.$lang->zkratka] = md5(microtime());
 		}
 		if($type == 'collection')$pole['vlastnik'] = 0;
@@ -141,10 +143,10 @@ class KategorieModel extends BaseModel{
 
 	public function delete($co,$status)
 	{
-		$result = dibi::query("SELECT id FROM categories WHERE vlastnik IN (%in)",$co)->fetchPairs('id','id');
+		$result = dibi::query("SELECT id FROM categories WHERE vlastnik IN %in",$co)->fetchPairs('id','id');
 		if(!empty($result))$this->delete($co,$status);
-		dibi::query("UPDATE products SET status=%s WHERE owner IN (%in)",$status,$co);
-		dibi::query("UPDATE categories SET status=%s WHERE id IN (%in)",$status,$co);
+		dibi::query("UPDATE products SET status=%s WHERE owner IN %in",$status,$co);
+		dibi::query("UPDATE categories SET status=%s WHERE id IN %in",$status,$co);
 	}
 
 	public function getText($id,$lang)

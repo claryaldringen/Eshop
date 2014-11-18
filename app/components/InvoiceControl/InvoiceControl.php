@@ -360,7 +360,7 @@ class InvoiceControl extends NControl {
      */
     public function exportToPdf(mPDF $mpdf, $name = NULL, $dest = NULL) {
         $this->generate();
-        $mpdf->WriteHTML((string) $this->template);
+        $mpdf->WriteHTML((string) $this->getTemplate());
 
         if (($name !== '') && ($dest !== NULL)) {
             $mpdf->Output($name, $dest);
