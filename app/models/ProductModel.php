@@ -834,15 +834,19 @@ class ProductModel extends BaseModel{
 		return $result;
 	}
 
-	public function getRecomended($count,$lang)
-	{
-	  $result = dibi::query("SELECT P.id,P.jmeno_$lang AS jmeno,P.link_$lang AS link,(V.cena*(1+P.dph/100)) AS cena,(P.cena*(1+P.dph/100)) AS scena FROM variants V JOIN products P ON V.vlastnik=P.id WHERE V.status='ok' AND P.id IN (SELECT id_prod FROM collections WHERE id_coll=54) GROUP BY P.id LIMIT %i",$count)->fetchAll();
+	public function getProductsFromCollection($collectionId, $count, $lang) {
+		$result = dibi::query("SELECT P.id,P.jmeno_$lang AS jmeno,P.link_$lang AS link,(V.cena*(1+P.dph/100)) AS cena,(P.cena*(1+P.dph/100)) AS scena FROM variants V JOIN products P ON V.vlastnik=P.id WHERE V.status='ok' AND P.id IN (SELECT id_prod FROM collections WHERE id_coll=%i) GROUP BY P.id LIMIT %i", $collectionId, $count)->fetchAll();
 		foreach($result as $key=>$val)
 		{
 			$result[$key]->image = dibi::fetch("SELECT id FROM images WHERE vlastnik=%i ORDER BY sort,id LIMIT 1",$val->id)->id;
 			$result[$key]->path = $this->getProductCPath($val->id,$lang);
 		}
 		return $result;
+	}
+
+	public function getRecomended($count,$lang)
+	{
+		return $this->getProductsFromCollection(54, $count, $lang);
 	}
 
 	public function getSuplements($id,$lang,$type)
