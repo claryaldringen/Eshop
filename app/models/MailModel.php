@@ -60,9 +60,9 @@ class MailModel extends BaseModel{
 
 	public function setEmails(NPresenter $presenter,$subject,$message)
 	{
-		$config = (object)$this->context->params['mail'];
+		$config = (object)$this->context->parameters['mail'];
 
-		$template = new NFileTemplate(APP_DIR.'/templates/Mail/spam.phtml');
+		$template = new NFileTemplate($this->context->parameters['appDir'] . '/templates/Mail/spam.latte');
 		$template->registerFilter(new NLatteFilter());
 		$message = str_replace(array_keys($this->getProductAliases($presenter)), $this->getProductAliases($presenter), $message);
 		$template->message = $message;
@@ -90,7 +90,7 @@ class MailModel extends BaseModel{
 		$result = dibi::query("SELECT P.id,P.owner,P.popis_$lang AS popis,P.jmeno_$lang AS jmeno,P.link_$lang AS link,V.cena FROM variants V JOIN products P ON V.vlastnik=P.id WHERE P.owner > 0 GROUP BY P.id")->fetchAll();
 		foreach($result as $info)
 		{
-			$template = new NFileTemplate(APP_DIR.'/templates/Mail/item.phtml');
+			$template = new NFileTemplate($this->context->parameters['appDir'] .'/templates/Mail/item.latte');
 			$template->registerFilter(new NLatteFilter());
 			$template->jmeno = $info->jmeno;
 			$template->image = dibi::fetch("SELECT id FROM images WHERE vlastnik=%i ORDER BY sort,id LIMIT 1",$info->id)->id;
@@ -117,9 +117,9 @@ class MailModel extends BaseModel{
 
 	public function outOfStock($data)
 	{
-		$config = (object)$this->context->params['mail'];
+		$config = (object)$this->context->parameters['mail'];
 
-		$template = new NFileTemplate(APP_DIR.'/templates/Mail/outofsotck.phtml');
+		$template = new NFileTemplate($this->context->parameters['appDir'] . '/templates/Mail/outofsotck.latte');
 		$template->registerFilter(new NLatteFilter());
 		$template->items = $data;
 

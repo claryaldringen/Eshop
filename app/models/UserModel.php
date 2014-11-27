@@ -21,18 +21,18 @@ class UserModel extends BaseModel{
 			$id = dibi::getInsertId();
 
 			dibi::query("UPDATE users SET logincookie=MD5(id) WHERE id=%i",$id);
-			if($this->context->params['registration']['emailconfirmation'] == 0)
+			if($this->context->parameters['registration']['emailconfirmation'] == 0)
 			{
 				dibi::query("UPDATE users SET registrovan=1 WHERE id=%i",$id);
 				return 2;
 			}
 
 			$template = new NFileTemplate();
-			$template->setFile(APP_DIR.'/templates/Mail/registration.phtml');
+			$template->setFile($this->context->parameters['appDir'] . '/templates/Mail/registration.latte');
 			$template->registerFilter(new NLatteFilter());
 			$template->link = $presenter->link('//register!',array('id'=>$id));
 
-			$maildata = $this->context->params['mail'];
+			$maildata = (object)$this->context->parameters['mail'];
 			$mail = new NMail();
 			$mail->setFrom($maildata->frommail,$maildata->fromname);
 			$mail->addTo($data['email'],$data['jmeno'].' '.$data['prijmeni']);
@@ -159,7 +159,7 @@ class UserModel extends BaseModel{
 	  if(isset($res->id))
 	  {
 			$template = new NFileTemplate();
-			$template->setFile(APP_DIR.'/templates/Mail/password.phtml');
+			$template->setFile($this->context->parameters['appDir'] . '/templates/Mail/password.latte');
 			$template->registerFilter(new NLatteFilter());
 			$template->password = NStrings::lower(substr(md5(time()),0,5));
 			$template->link = $presenter->link('//activate!',array('pass'=>md5($template->password)));
@@ -167,7 +167,7 @@ class UserModel extends BaseModel{
 
 			dibi::query("UPDATE users SET newheslo=%s WHERE id=%i",md5($template->password),$res->id);
 
-			$maildata = $this->context->params['mail'];
+			$maildata = (object)$this->context->parameterss['mail'];
 			$mail = new NMail();
 			$mail->setFrom($maildata->frommail,$maildata->fromname);
 			$mail->addTo($res['email'],$res['jmeno'].' '.$res['prijmeni']);
